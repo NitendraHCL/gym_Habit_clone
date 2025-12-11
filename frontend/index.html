@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find Partner Gyms - Habit Health</title>
     <meta name="description" content="Discover partner gyms near you with Habit Health by HCL Healthcare">
-    <link rel="stylesheet" href="/static/style.css?v=5">
+    <link rel="stylesheet" href="/static/style.css?v=6">
 </head>
 <body>
     <!-- Header -->
@@ -270,14 +270,14 @@
                 const amenitiesList = gym.amenities.split(',').slice(0, 3);
 
                 return `
-                    <div class="gym-card" onclick="showGymModal(${gym.id})" data-partner="${gym.partner_name}">
+                    <div class="gym-card" onclick="showGymModal(${gym.id})" data-partner="${gym.partner_name}" style="border-left: 4px solid ${getPartnerColor(gym.partner_name)}">
                         <!-- Card Header with Icon -->
                         <div class="gym-card-header">
                             <div class="gym-card-icon" style="background: ${getPartnerColor(gym.partner_name)}15; color: ${getPartnerColor(gym.partner_name)}">
                                 ${getPartnerIcon(gym.partner_name)}
                             </div>
                             <div class="gym-card-header-text">
-                                <span class="gym-partner-badge">${gym.partner_name}</span>
+                                <span class="gym-partner-badge" style="background: ${getPartnerColor(gym.partner_name)}; color: white;">${gym.partner_name}</span>
                                 ${showDistance && gym.distance ?
                                     `<span class="gym-distance-badge">📍 ${gym.distance} km</span>` : ''}
                             </div>

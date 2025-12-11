@@ -767,8 +767,8 @@ body {
 
 .modal-content {
     background: var(--bg-card);
-    border-radius: var(--radius-xl);
-    max-width: 700px;
+    border-radius: var(--radius-md);
+    max-width: 600px;
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
@@ -791,8 +791,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: var(--space-xl);
-    border-bottom: 2px solid var(--bg-base);
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--bg-base);
     position: sticky;
     top: 0;
     background: var(--bg-card);
@@ -800,15 +800,15 @@ body {
 }
 
 .modal-header h2 {
-    font-size: var(--font-size-3xl);
-    font-weight: 800;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
     line-height: 1.2;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-xs);
 }
 
 .modal-header .gym-partner-badge {
-    font-size: var(--font-size-base);
-    padding: 10px 24px;
+    font-size: var(--font-size-xs);
+    padding: 0;
 }
 
 .modal-close {
@@ -834,26 +834,26 @@ body {
 }
 
 .modal-body {
-    padding: var(--space-xl);
-    font-size: var(--font-size-lg);
-    line-height: 1.8;
+    padding: var(--space-md);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
 }
 
 .modal-section {
-    margin-bottom: var(--space-2xl);
+    margin-bottom: var(--space-md);
 }
 
 .modal-section h3 {
-    font-size: var(--font-size-2xl);
-    font-weight: 700;
+    font-size: var(--font-size-base);
+    font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-xs);
     line-height: 1.3;
 }
 
 .modal-section p {
-    font-size: var(--font-size-lg);
-    line-height: 1.8;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
     color: var(--text-primary);
 }
 
@@ -891,16 +891,16 @@ body {
    ============================================================================ */
 .plans-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--space-md);
-    margin-bottom: var(--space-xl);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
 }
 
 .plan-card {
-    padding: var(--space-lg);
+    padding: var(--space-sm);
     background: var(--bg-base);
-    border: 3px solid transparent;
-    border-radius: var(--radius-md);
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--transition-base);
     text-align: center;
@@ -942,12 +942,12 @@ body {
 }
 
 .plan-duration {
-    font-size: var(--font-size-base);
-    font-weight: 700;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .plan-card.selected .plan-duration {
@@ -955,10 +955,10 @@ body {
 }
 
 .plan-total {
-    font-size: var(--font-size-2xl);
-    font-weight: 900;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .plan-card.selected .plan-total {
@@ -969,27 +969,27 @@ body {
 }
 
 .plan-monthly {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
 }
 
 .plan-discount {
     display: inline-block;
-    padding: 4px 12px;
+    padding: 2px 8px;
     background: var(--energy-gradient);
     color: var(--text-white);
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    margin-top: var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: var(--space-xs);
 }
 
 .plan-savings {
-    font-size: var(--font-size-xs);
+    font-size: 10px;
     color: var(--primary);
-    font-weight: 600;
-    margin-top: 4px;
+    font-weight: 500;
+    margin-top: 2px;
 }
 
 /* Mobile optimization for plan cards */
@@ -1004,41 +1004,41 @@ body {
    FORM - MODERN SECTIONS
    ============================================================================ */
 .form-section {
-    background: linear-gradient(135deg, rgba(0, 86, 179, 0.05) 0%, rgba(0, 86, 179, 0.05) 100%);
-    border: 2px solid rgba(0, 86, 179, 0.1);
-    padding: var(--space-xl);
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--space-xl);
+    background: rgba(0, 86, 179, 0.03);
+    border: 1px solid rgba(0, 86, 179, 0.1);
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
 }
 
 .form-section-title {
-    font-size: var(--font-size-lg);
-    font-weight: 700;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-sm);
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: var(--space-xs);
 }
 
 .form-section-title::before {
     content: '';
-    width: 4px;
-    height: 24px;
-    background: var(--primary-gradient);
+    width: 3px;
+    height: 16px;
+    background: var(--primary);
     border-radius: var(--radius-full);
 }
 
 .form-group {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-sm);
 }
 
 .form-label {
     display: block;
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
 }
 
 .form-label.required::after {
@@ -1049,22 +1049,22 @@ body {
 .form-input,
 .form-textarea {
     width: 100%;
-    padding: var(--space-lg);
+    padding: var(--space-sm);
     background: var(--bg-card);
-    border: 2px solid var(--bg-base);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-lg);
+    border: 1px solid rgba(0, 86, 179, 0.2);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
     color: var(--text-primary);
     transition: all var(--transition-fast);
     font-family: var(--font-body);
-    line-height: 1.6;
+    line-height: 1.4;
 }
 
 .form-input:focus,
 .form-textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.1);
+    box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.1);
 }
 
 .form-input[readonly] {
@@ -1074,26 +1074,26 @@ body {
 
 .form-textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 60px;
 }
 
 .form-hint {
     display: block;
-    font-size: var(--font-size-xs);
+    font-size: 10px;
     color: var(--text-light);
     margin-top: var(--space-xs);
 }
 
 .form-actions {
-    margin-top: var(--space-2xl);
+    margin-top: var(--space-md);
 }
 
 .form-actions .btn {
     width: 100%;
-    padding: var(--space-lg);
-    background: var(--primary-gradient);
+    padding: var(--space-sm);
+    background: var(--primary);
     color: var(--text-white);
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
 }
 
 /* ============================================================================

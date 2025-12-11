@@ -7,26 +7,26 @@
    CSS VARIABLES - VIBRANT COLOR SYSTEM
    ============================================================================ */
 :root {
-    /* Habit Health Brand Colors */
-    --primary-gradient: linear-gradient(135deg, #6C63FF 0%, #5B4FE8 100%);
-    --secondary-gradient: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --energy-gradient: linear-gradient(135deg, #FF6B35 0%, #FFB84D 100%);
-    --purple-gradient: linear-gradient(135deg, #6C63FF 0%, #9D97FF 100%);
-    --orange-gradient: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-    --blue-gradient: linear-gradient(135deg, #4F96FF 0%, #6BB6FF 100%);
+    /* Habit Health Brand Colors - Blue & Orange */
+    --primary-gradient: linear-gradient(135deg, #0056B3 0%, #3380CC 100%);
+    --secondary-gradient: linear-gradient(135deg, #FF8C00 0%, #FFB84D 100%);
+    --success-gradient: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+    --energy-gradient: linear-gradient(135deg, #FF8C00 0%, #FFB84D 100%);
+    --purple-gradient: linear-gradient(135deg, #0056B3 0%, #00A8E8 100%);
+    --orange-gradient: linear-gradient(135deg, #FF8C00 0%, #FFB84D 100%);
+    --blue-gradient: linear-gradient(135deg, #0056B3 0%, #3380CC 100%);
 
     /* Solid Colors - Habit Health Palette */
-    --primary: #6C63FF;
-    --primary-dark: #5B4FE8;
-    --secondary: #FF6B35;
-    --accent-orange: #FF8C42;
-    --accent-blue: #4F96FF;
-    --accent-purple: #9D97FF;
+    --primary: #0056B3;
+    --primary-dark: #003D82;
+    --secondary: #FF8C00;
+    --accent-orange: #FFB84D;
+    --accent-blue: #3380CC;
+    --accent-purple: #FFB84D;
     --accent-light: #FFB84D;
 
     /* Backgrounds */
-    --bg-base: #F5F3FF;
+    --bg-base: #F8F9FE;
     --bg-dark: #1a1d2e;
     --bg-card: #ffffff;
     --bg-overlay: rgba(255, 255, 255, 0.9);
@@ -37,23 +37,30 @@
     --text-light: #9ca3af;
     --text-white: #ffffff;
 
-    /* Shadows - Enhanced */
-    --shadow-sm: 0 2px 8px rgba(102, 126, 234, 0.1);
-    --shadow-md: 0 4px 16px rgba(102, 126, 234, 0.15);
-    --shadow-lg: 0 8px 32px rgba(102, 126, 234, 0.2);
-    --shadow-xl: 0 16px 48px rgba(102, 126, 234, 0.25);
-    --shadow-glow: 0 0 40px rgba(102, 126, 234, 0.4);
-    --shadow-card-hover: 0 12px 40px rgba(102, 126, 234, 0.3);
+    /* Shadows - Blue Tinted */
+    --shadow-sm: 0 2px 8px rgba(0, 86, 179, 0.1);
+    --shadow-md: 0 4px 16px rgba(0, 86, 179, 0.15);
+    --shadow-lg: 0 8px 32px rgba(0, 86, 179, 0.2);
+    --shadow-xl: 0 16px 48px rgba(0, 86, 179, 0.25);
+    --shadow-glow: 0 0 40px rgba(0, 86, 179, 0.4);
+    --shadow-card-hover: 0 12px 40px rgba(0, 86, 179, 0.3);
 
-    /* Spacing */
+    /* Spacing - Reduced by 25% for better density */
     --space-xs: 4px;
     --space-sm: 8px;
     --space-md: 16px;
     --space-lg: 24px;
-    --space-xl: 32px;
-    --space-2xl: 48px;
-    --space-3xl: 64px;
-    --space-4xl: 96px;
+    --space-xl: 24px;    /* Was 32px */
+    --space-2xl: 36px;   /* Was 48px */
+    --space-3xl: 48px;   /* Was 64px */
+    --space-4xl: 72px;   /* Was 96px */
+
+    /* Breakpoints */
+    --breakpoint-xs: 320px;
+    --breakpoint-sm: 480px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
 
     /* Border Radius */
     --radius-sm: 8px;
@@ -62,17 +69,17 @@
     --radius-xl: 32px;
     --radius-full: 9999px;
 
-    /* Typography */
+    /* Typography - Fluid Responsive Sizing */
     --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    --font-size-xs: 12px;
-    --font-size-sm: 14px;
-    --font-size-base: 16px;
-    --font-size-lg: 18px;
-    --font-size-xl: 24px;
-    --font-size-2xl: 32px;
-    --font-size-3xl: 48px;
-    --font-size-4xl: 64px;
+    --font-size-xs: clamp(10px, 2vw, 12px);
+    --font-size-sm: clamp(12px, 2.5vw, 14px);
+    --font-size-base: clamp(14px, 3vw, 16px);
+    --font-size-lg: clamp(16px, 3.5vw, 18px);
+    --font-size-xl: clamp(18px, 4vw, 24px);
+    --font-size-2xl: clamp(24px, 5vw, 32px);
+    --font-size-3xl: clamp(32px, 6vw, 48px);
+    --font-size-4xl: clamp(40px, 8vw, 64px);
 
     /* Transitions */
     --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -110,13 +117,19 @@ body {
 .container {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 0 var(--space-lg);
+    padding: 0 24px;
 }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 0 var(--space-md);
-    }
+@media (max-width: 1023px) {
+    .container { padding: 0 20px; }
+}
+
+@media (max-width: 767px) {
+    .container { padding: 0 16px; }
+}
+
+@media (max-width: 479px) {
+    .container { padding: 0 12px; }
 }
 
 /* ============================================================================
@@ -170,11 +183,26 @@ body {
     background-clip: text;
 }
 
+/* Mobile header optimization */
+@media (max-width: 767px) {
+    .header-content {
+        padding: var(--space-md) 0;  /* Reduced padding on mobile */
+    }
+
+    .logo img {
+        height: 36px;  /* Smaller logo on mobile */
+    }
+
+    .page-title {
+        font-size: var(--font-size-base);
+    }
+}
+
 /* ============================================================================
    HERO SECTION - VIBRANT & IMPACTFUL
    ============================================================================ */
 .hero {
-    background: linear-gradient(135deg, #6C63FF 0%, #9D97FF 50%, #FF8C42 100%);
+    background: linear-gradient(135deg, #0056B3 0%, #00A8E8 50%, #FF8C00 100%);
     position: relative;
     overflow: hidden;
     padding: var(--space-4xl) 0;
@@ -217,9 +245,17 @@ body {
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 768px) {
+/* Tablet and below */
+@media (max-width: 1023px) {
     .hero {
-        padding: var(--space-3xl) 0;
+        padding: var(--space-2xl) 0;  /* 36px */
+    }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+    .hero {
+        padding: var(--space-xl) 0;  /* 24px */
     }
 
     .hero-title {
@@ -295,6 +331,18 @@ body {
     transform: translateY(-2px) scale(1.05);
 }
 
+/* Responsive padding for sections */
+@media (max-width: 767px) {
+    .brands-section {
+        padding: var(--space-xl) 0;  /* 24px on mobile */
+    }
+
+    .brand-chip {
+        padding: var(--space-sm) var(--space-lg);
+        font-size: var(--font-size-sm);
+    }
+}
+
 /* ============================================================================
    LOCATION SECTION - VIBRANT
    ============================================================================ */
@@ -346,6 +394,12 @@ body {
     color: rgba(255, 255, 255, 0.9);
 }
 
+@media (max-width: 767px) {
+    .gyms-section {
+        padding: var(--space-xl) 0;  /* 24px on mobile */
+    }
+}
+
 /* ============================================================================
    BUTTONS - GRADIENT & VIBRANT
    ============================================================================ */
@@ -392,7 +446,7 @@ body {
 @media (max-width: 768px) {
     .gym-grid {
         grid-template-columns: 1fr;
-        gap: var(--space-lg);
+        gap: var(--space-md);  /* Reduced gap for better mobile density */
     }
 }
 
@@ -407,7 +461,7 @@ body {
     transition: all var(--transition-base);
     box-shadow: var(--shadow-md);
     position: relative;
-    border: 1px solid rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(0, 86, 179, 0.1);
 }
 
 .gym-card::before {
@@ -430,13 +484,13 @@ body {
 .gym-card:hover {
     transform: translateY(-12px);
     box-shadow: var(--shadow-card-hover);
-    border-color: rgba(102, 126, 234, 0.3);
+    border-color: rgba(0, 86, 179, 0.3);
 }
 
 /* Card Image with Gradient Overlay */
 .gym-card-image {
     height: 200px;
-    background: linear-gradient(135deg, #6C63FF 0%, #9D97FF 50%, #FF8C42 100%);
+    background: linear-gradient(135deg, #0056B3 0%, #00A8E8 50%, #FF8C00 100%);
     position: relative;
     overflow: hidden;
 }
@@ -532,8 +586,8 @@ body {
 
 /* Pricing Section - PROMINENT */
 .gym-pricing {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-    border: 2px solid rgba(102, 126, 234, 0.2);
+    background: linear-gradient(135deg, rgba(0, 86, 179, 0.1) 0%, rgba(0, 86, 179, 0.1) 100%);
+    border: 2px solid rgba(0, 86, 179, 0.2);
     padding: var(--space-lg);
     border-radius: var(--radius-md);
     margin-bottom: var(--space-lg);
@@ -599,9 +653,9 @@ body {
 }
 
 .amenity-tag {
-    padding: 10px 18px;
+    padding: 12px 20px;
     background: var(--bg-base);
-    border: 1px solid rgba(108, 99, 255, 0.2);
+    border: 1px solid rgba(0, 86, 179, 0.2);
     border-radius: var(--radius-full);
     font-size: var(--font-size-base);
     color: var(--text-secondary);
@@ -610,9 +664,16 @@ body {
 }
 
 .amenity-tag:hover {
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(0, 86, 179, 0.1);
     border-color: var(--primary);
     color: var(--primary);
+}
+
+@media (max-width: 767px) {
+    .amenity-tag {
+        padding: 14px 20px;
+        font-size: var(--font-size-sm);
+    }
 }
 
 /* Card Footer */
@@ -713,8 +774,8 @@ body {
 }
 
 .modal-close {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: var(--radius-full);
     border: none;
     background: var(--bg-base);
@@ -756,6 +817,35 @@ body {
     font-size: var(--font-size-lg);
     line-height: 1.8;
     color: var(--text-primary);
+}
+
+/* Mobile-optimized full-screen modal */
+@media (max-width: 767px) {
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal-content {
+        max-width: 100%;
+        width: 100%;
+        max-height: 95vh;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        margin: 0;
+    }
+
+    /* Keyboard avoidance - reduce height when input is focused */
+    .modal-content:has(input:focus, textarea:focus) {
+        max-height: 85vh;
+    }
+
+    .modal-header {
+        padding: var(--space-md);
+    }
+
+    .modal-body {
+        padding: var(--space-md);
+    }
 }
 
 /* ============================================================================
@@ -864,12 +954,20 @@ body {
     margin-top: 4px;
 }
 
+/* Mobile optimization for plan cards */
+@media (max-width: 479px) {
+    .plans-grid {
+        grid-template-columns: repeat(2, 1fr);  /* 2 columns on small phones */
+        gap: var(--space-sm);
+    }
+}
+
 /* ============================================================================
    FORM - MODERN SECTIONS
    ============================================================================ */
 .form-section {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-    border: 2px solid rgba(102, 126, 234, 0.1);
+    background: linear-gradient(135deg, rgba(0, 86, 179, 0.05) 0%, rgba(0, 86, 179, 0.05) 100%);
+    border: 2px solid rgba(0, 86, 179, 0.1);
     padding: var(--space-xl);
     border-radius: var(--radius-lg);
     margin-bottom: var(--space-xl);
@@ -928,7 +1026,7 @@ body {
 .form-textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.1);
 }
 
 .form-input[readonly] {
@@ -1009,6 +1107,12 @@ body {
 .footer p {
     font-size: var(--font-size-sm);
     opacity: 0.8;
+}
+
+@media (max-width: 767px) {
+    .footer {
+        margin-top: var(--space-2xl);  /* 36px on mobile */
+    }
 }
 
 /* ============================================================================

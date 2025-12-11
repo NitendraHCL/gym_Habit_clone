@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find Partner Gyms - Habit Health</title>
     <meta name="description" content="Discover partner gyms near you with Habit Health by HCL Healthcare">
-    <link rel="stylesheet" href="/static/style.css?v=4">
+    <link rel="stylesheet" href="/static/style.css?v=5">
 </head>
 <body>
     <!-- Header -->
@@ -201,6 +201,31 @@
         }
 
         // ============================================================================
+        // PARTNER ICONS
+        // ============================================================================
+        function getPartnerIcon(partnerName) {
+            const icons = {
+                'Cult': '🎯',
+                'Gold\'s Gym': '💪',
+                'Anytime Fitness': '⏰',
+                'Fitness First': '🥇',
+                'Talwalkar\'s': '🧘'
+            };
+            return icons[partnerName] || '🏋️';
+        }
+
+        function getPartnerColor(partnerName) {
+            const colors = {
+                'Cult': '#FF6B6B',
+                'Gold\'s Gym': '#FFD93D',
+                'Anytime Fitness': '#6BCF7F',
+                'Fitness First': '#4D96FF',
+                'Talwalkar\'s': '#9D4EDD'
+            };
+            return colors[partnerName] || '#0056B3';
+        }
+
+        // ============================================================================
         // UI RENDERING
         // ============================================================================
         function renderBrandFilters(partners) {
@@ -213,12 +238,14 @@
 
             // Add "All" filter
             const allChip = `<div class="brand-chip active" onclick="toggleFilter('All')">
-                <span>All Gyms</span>
+                <span class="brand-chip-icon">🏋️</span>
+                <span class="brand-chip-text">All Gyms</span>
             </div>`;
 
             const partnerChips = partners.map(partner => `
                 <div class="brand-chip" onclick="toggleFilter('${partner.name}')">
-                    <span>${partner.name}</span>
+                    <span class="brand-chip-icon">${getPartnerIcon(partner.name)}</span>
+                    <span class="brand-chip-text">${partner.name}</span>
                 </div>
             `).join('');
 
@@ -243,12 +270,17 @@
                 const amenitiesList = gym.amenities.split(',').slice(0, 3);
 
                 return `
-                    <div class="gym-card" onclick="showGymModal(${gym.id})">
-                        <!-- Image Placeholder -->
-                        <div class="gym-card-image">
-                            <span class="gym-card-badge">${gym.partner_name}</span>
-                            ${showDistance && gym.distance ?
-                                `<span class="gym-distance-badge">📍 ${gym.distance} km</span>` : ''}
+                    <div class="gym-card" onclick="showGymModal(${gym.id})" data-partner="${gym.partner_name}">
+                        <!-- Card Header with Icon -->
+                        <div class="gym-card-header">
+                            <div class="gym-card-icon" style="background: ${getPartnerColor(gym.partner_name)}15; color: ${getPartnerColor(gym.partner_name)}">
+                                ${getPartnerIcon(gym.partner_name)}
+                            </div>
+                            <div class="gym-card-header-text">
+                                <span class="gym-partner-badge">${gym.partner_name}</span>
+                                ${showDistance && gym.distance ?
+                                    `<span class="gym-distance-badge">📍 ${gym.distance} km</span>` : ''}
+                            </div>
                         </div>
 
                         <!-- Card Body -->

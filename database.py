@@ -9,6 +9,8 @@ import math
 from datetime import datetime
 from typing import List, Dict, Optional
 from pathlib import Path
+from scipy.spatial import KDTree
+import numpy as np
 
 
 class GymDatabase:
@@ -17,7 +19,12 @@ class GymDatabase:
     def __init__(self, csv_path: str = "gyms.csv"):
         self.csv_path = csv_path
         self.gyms: List[Dict] = []
+        self.pincode_index: Dict[str, List[Dict]] = {}
+        self.city_index: Dict[str, List[Dict]] = {}
+        self.spatial_tree: Optional[KDTree] = None
+        self.coordinates: List[tuple] = []
         self.load_gyms()
+        self.build_indexes()
 
     def load_gyms(self):
         """Load all gyms from CSV into memory"""
@@ -32,6 +39,8 @@ class GymDatabase:
                         'gym_name': row['GymName'].strip(),
                         'address': row['Address'].strip(),
                         'pincode': row['Pincode'].strip(),
+                        'city': row['City'].strip(),
+                        'state': row['State'].strip(),
                         'latitude': float(row['Latitude']),
                         'longitude': float(row['Longitude']),
                         'subscription_amount': int(row['SubscriptionAmount']),
@@ -45,6 +54,36 @@ class GymDatabase:
         except Exception as e:
             print(f"[ERROR] Error loading CSV: {e}")
             self.gyms = []
+
+    def build_indexes(self):
+        """Build indexes for fast search on 20k+ gyms"""
+        if not self.gyms:
+            return
+
+        print(f"[INDEX] Building search indexes for {len(self.gyms)} gyms...")
+
+        # Build pincode index
+        self.pincode_index = {}
+        for gym in self.gyms:
+            pincode = gym['pincode']
+            if pincode not in self.pincode_index:
+                self.pincode_index[pincode] = []
+            self.pincode_index[pincode].append(gym)
+
+        # Build city index
+        self.city_index = {}
+        for gym in self.gyms:
+            city = gym['city'].lower()
+            if city not in self.city_index:
+                self.city_index[city] = []
+            self.city_index[city].append(gym)
+
+        # Build KD-Tree for spatial search
+        self.coordinates = [(gym['latitude'], gym['longitude']) for gym in self.gyms]
+        if self.coordinates:
+            self.spatial_tree = KDTree(self.coordinates)
+
+        print(f"[INDEX] Built indexes: {len(self.pincode_index)} pincodes, {len(self.city_index)} cities")
 
     def get_all_partners(self) -> List[Dict[str, any]]:
         """
@@ -90,26 +129,118 @@ class GymDatabase:
                 return gym
         return None
 
+    def search_by_pincode(self, pincode: str, limit: int = 10) -> List[Dict]:
+        """
+        Search gyms by pincode (instant, no distance calculation)
+        Args:
+            pincode: 6-digit pincode
+            limit: Max results
+        Returns: List of gyms in that pincode
+        """
+        # Exact pincode match
+        exact_matches = self.pincode_index.get(pincode, [])
+
+        if exact_matches:
+            return exact_matches[:limit]
+
+        # Try nearby pincodes (same first 3 digits)
+        prefix = pincode[:3]
+        nearby_gyms = []
+        for pc, gyms in self.pincode_index.items():
+            if pc.startswith(prefix):
+                nearby_gyms.extend(gyms)
+
+        return nearby_gyms[:limit]
+
+    def search_by_city(self, city: str, limit: int = 100) -> List[Dict]:
+        """
+        Get gyms in a specific city
+        Args:
+            city: City name
+            limit: Max results
+        Returns: List of gyms in that city
+        """
+        city_key = city.lower()
+        return self.city_index.get(city_key, [])[:limit]
+
     def get_nearby_gyms(
         self,
         user_lat: float,
         user_lon: float,
         partner: Optional[str] = None,
+        city: Optional[str] = None,
         limit: int = 10
     ) -> List[Dict]:
         """
-        Find nearest gyms using Haversine distance
+        Find nearest gyms using KD-Tree (optimized for 20k+ gyms)
         Args:
             user_lat: User's latitude
             user_lon: User's longitude
             partner: Optional partner filter
+            city: Optional city filter (speeds up search)
             limit: Max number of results (default: 10)
         Returns: List of gyms sorted by distance
         """
-        # Start with all gyms or filtered by partner
-        gyms = self.get_gyms_by_partner(partner) if partner else self.gyms
+        # Strategy: Use city filter if available to reduce search space
+        if city:
+            candidate_gyms = self.search_by_city(city, limit=1000)
+        elif partner:
+            candidate_gyms = self.get_gyms_by_partner(partner)
+        else:
+            candidate_gyms = self.gyms
 
-        # Calculate distance for each gym
+        # If we have a small set, use traditional haversine
+        if len(candidate_gyms) <= 500:
+            gyms_with_distance = []
+            for gym in candidate_gyms:
+                distance = haversine_distance(
+                    user_lat, user_lon,
+                    gym['latitude'], gym['longitude']
+                )
+                gym_copy = gym.copy()
+                gym_copy['distance'] = distance
+                gyms_with_distance.append(gym_copy)
+
+            gyms_with_distance.sort(key=lambda x: x['distance'])
+            return gyms_with_distance[:limit]
+
+        # For large datasets, use KD-Tree
+        if self.spatial_tree is None:
+            # Fallback to traditional method
+            return self._haversine_search(candidate_gyms, user_lat, user_lon, limit)
+
+        # Use KD-Tree to find nearest neighbors
+        # Get more results than needed to account for filtering
+        k = min(limit * 3, len(self.gyms))
+        distances, indices = self.spatial_tree.query([user_lat, user_lon], k=k)
+
+        # Get gyms from indices
+        nearest_gyms = []
+        for i, idx in enumerate(indices):
+            if idx < len(self.gyms):
+                gym = self.gyms[idx]
+
+                # Apply filters
+                if partner and gym['partner_name'].lower() != partner.lower():
+                    continue
+
+                gym_copy = gym.copy()
+                # Calculate actual haversine distance for accuracy
+                gym_copy['distance'] = haversine_distance(
+                    user_lat, user_lon,
+                    gym['latitude'], gym['longitude']
+                )
+                nearest_gyms.append(gym_copy)
+
+                if len(nearest_gyms) >= limit:
+                    break
+
+        # Sort by actual distance
+        nearest_gyms.sort(key=lambda x: x['distance'])
+        return nearest_gyms[:limit]
+
+    def _haversine_search(self, gyms: List[Dict], user_lat: float, user_lon: float, limit: int) -> List[Dict]:
+        """Fallback haversine search method"""
         gyms_with_distance = []
         for gym in gyms:
             distance = haversine_distance(
@@ -120,7 +251,6 @@ class GymDatabase:
             gym_copy['distance'] = distance
             gyms_with_distance.append(gym_copy)
 
-        # Sort by distance and limit results
         gyms_with_distance.sort(key=lambda x: x['distance'])
         return gyms_with_distance[:limit]
 
@@ -197,7 +327,7 @@ class GymDatabase:
         try:
             with open(self.csv_path, 'w', newline='', encoding='utf-8') as file:
                 fieldnames = [
-                    'PartnerName', 'GymName', 'Address', 'Pincode',
+                    'PartnerName', 'GymName', 'Address', 'Pincode', 'City', 'State',
                     'Latitude', 'Longitude', 'SubscriptionAmount', 'Amenities'
                 ]
                 writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -209,12 +339,17 @@ class GymDatabase:
                         'GymName': gym['gym_name'],
                         'Address': gym['address'],
                         'Pincode': gym['pincode'],
+                        'City': gym.get('city', ''),
+                        'State': gym.get('state', ''),
                         'Latitude': gym['latitude'],
                         'Longitude': gym['longitude'],
                         'SubscriptionAmount': gym['subscription_amount'],
                         'Amenities': gym['amenities']
                     })
             print(f"[SAVED] Saved {len(self.gyms)} gyms to {self.csv_path}")
+
+            # Rebuild indexes after save
+            self.build_indexes()
         except Exception as e:
             print(f"[ERROR] Error saving CSV: {e}")
 

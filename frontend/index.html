@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find Partner Gyms - Habit Health</title>
     <meta name="description" content="Discover partner gyms near you with Habit Health by HCL Healthcare">
-    <link rel="stylesheet" href="/static/style.css?v=8">
+    <link rel="stylesheet" href="/static/style.css?v=9">
 </head>
 <body>
     <!-- Header -->
@@ -42,19 +42,65 @@
         </div>
     </section>
 
-    <!-- Location Section -->
+    <!-- Location Search Section -->
     <section class="gyms-section">
         <div class="container">
             <div class="location-section" id="locationSection">
-                <div class="location-content">
-                    <div class="location-info">
-                        <div class="location-icon">📍</div>
-                        <div class="location-text">
-                            <h3 id="locationCity">Delhi</h3>
-                            <p>Showing gyms near you</p>
-                        </div>
+                <h3 style="color: white; font-size: var(--font-size-xl); margin-bottom: var(--space-lg);">🔍 Find Gyms Near You</h3>
+
+                <!-- Popular Areas Quick Links -->
+                <div class="popular-areas-grid" id="popularAreasGrid">
+                    <div class="area-chip" onclick="searchByArea('Mumbai')">
+                        <span class="area-chip-icon">🏙️</span>
+                        <span class="area-chip-text">Mumbai</span>
                     </div>
-                    <button class="btn" id="nearbyBtn">Show Nearby Gyms</button>
+                    <div class="area-chip" onclick="searchByArea('Delhi')">
+                        <span class="area-chip-icon">🏛️</span>
+                        <span class="area-chip-text">Delhi</span>
+                    </div>
+                    <div class="area-chip" onclick="searchByArea('Bangalore')">
+                        <span class="area-chip-icon">💻</span>
+                        <span class="area-chip-text">Bangalore</span>
+                    </div>
+                    <div class="area-chip" onclick="searchByArea('Pune')">
+                        <span class="area-chip-icon">🌆</span>
+                        <span class="area-chip-text">Pune</span>
+                    </div>
+                    <div class="area-chip" onclick="searchByArea('Andheri')">
+                        <span class="area-chip-icon">📍</span>
+                        <span class="area-chip-text">Andheri</span>
+                    </div>
+                    <div class="area-chip" onclick="searchByArea('Bandra')">
+                        <span class="area-chip-icon">📍</span>
+                        <span class="area-chip-text">Bandra</span>
+                    </div>
+                    <div class="area-chip" onclick="searchByArea('Koramangala')">
+                        <span class="area-chip-icon">📍</span>
+                        <span class="area-chip-text">Koramangala</span>
+                    </div>
+                    <div class="area-chip" onclick="searchByArea('Indiranagar')">
+                        <span class="area-chip-icon">📍</span>
+                        <span class="area-chip-text">Indiranagar</span>
+                    </div>
+                </div>
+
+                <!-- Search Input -->
+                <div class="location-search-box" style="margin-top: var(--space-lg);">
+                    <div class="search-input-wrapper">
+                        <input
+                            type="text"
+                            id="locationSearchInput"
+                            class="location-search-input"
+                            placeholder="Enter city, area, or 6-digit pincode (e.g., Mumbai, Andheri, 400053)"
+                            onkeypress="if(event.key === 'Enter') searchLocation()"
+                        />
+                        <button class="search-btn" id="searchBtn" onclick="searchLocation()">
+                            <span id="searchBtnText">Search</span>
+                        </button>
+                    </div>
+                    <p style="color: rgba(255,255,255,0.8); font-size: var(--font-size-sm); margin-top: var(--space-sm);" id="searchHint">
+                        💡 Try: "Andheri Mumbai", "Koramangala Bangalore", or enter a 6-digit pincode
+                    </p>
                 </div>
             </div>
         </div>
@@ -153,6 +199,21 @@
             } catch (error) {
                 console.error('Error fetching nearby gyms:', error);
                 return [];
+            }
+        }
+
+        async function fetchLocationGyms(location, partner = null, limit = 20) {
+            try {
+                let url = `${API_BASE}/api/gyms/search-by-location?location=${encodeURIComponent(location)}&limit=${limit}`;
+                if (partner) {
+                    url += `&partner=${encodeURIComponent(partner)}`;
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching location gyms:', error);
+                throw error;
             }
         }
 
@@ -523,45 +584,65 @@
         }
 
         // ============================================================================
-        // NEARBY GYMS
+        // LOCATION SEARCH
         // ============================================================================
-        async function findNearbyGyms() {
-            const nearbyBtn = document.getElementById('nearbyBtn');
-            nearbyBtn.disabled = true;
-            nearbyBtn.innerHTML = '<span>🔄 Getting location...</span>';
+        async function searchLocation() {
+            const searchInput = document.getElementById('locationSearchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const searchBtnText = document.getElementById('searchBtnText');
+            const location = searchInput.value.trim();
+
+            if (!location) {
+                alert('Please enter a city, area, or pincode');
+                return;
+            }
+
+            searchBtn.disabled = true;
+            searchBtnText.textContent = '🔄 Searching...';
 
             try {
-                state.userLocation = await getUserLocation();
-                nearbyBtn.innerHTML = '<span>🔄 Finding nearby gyms...</span>';
+                const result = await fetchLocationGyms(location, null, 20);
 
-                const nearbyGyms = await fetchNearbyGyms(state.userLocation.lat, state.userLocation.lon, 20);
-
-                // Apply active filters to nearby gyms
-                let gymsToShow = nearbyGyms;
+                // Apply active filters if any
+                let gymsToShow = result.gyms;
                 if (state.activeFilters.length > 0) {
-                    gymsToShow = nearbyGyms.filter(gym =>
+                    gymsToShow = result.gyms.filter(gym =>
                         state.activeFilters.includes(gym.partner_name)
                     );
                 }
 
                 state.filteredGyms = gymsToShow;
-                renderGymCards(gymsToShow, true);
+                state.userLocation = result.coordinates ? {
+                    lat: result.coordinates.lat,
+                    lon: result.coordinates.lon,
+                    city: result.location
+                } : null;
 
-                // Update location display
-                document.getElementById('locationCity').textContent = state.userLocation.city;
-                document.getElementById('gymsTitle').textContent = 'Gyms Near You';
+                // Show distance badge if we have coordinates
+                const showDistance = result.search_type === 'geocoded';
+                renderGymCards(gymsToShow, showDistance);
 
-                nearbyBtn.innerHTML = '<span>✓ Location Updated</span>';
-                nearbyBtn.style.background = 'var(--success-green)';
-                nearbyBtn.style.color = 'var(--bg-white)';
-                nearbyBtn.style.borderColor = 'transparent';
+                // Update section title
+                document.getElementById('gymsTitle').textContent = `Gyms near ${result.location}`;
+
+                searchBtnText.textContent = '✓ Found';
+                setTimeout(() => {
+                    searchBtn.disabled = false;
+                    searchBtnText.textContent = 'Search';
+                }, 2000);
 
             } catch (error) {
-                console.error('Location error:', error);
-                alert('Unable to access location. Please enable location permissions.');
-                nearbyBtn.disabled = false;
-                nearbyBtn.innerHTML = '<span>Show Nearby Gyms</span>';
+                console.error('Search error:', error);
+                alert('Unable to find location. Please check your input and try again.');
+                searchBtn.disabled = false;
+                searchBtnText.textContent = 'Search';
             }
+        }
+
+        async function searchByArea(areaName) {
+            const searchInput = document.getElementById('locationSearchInput');
+            searchInput.value = areaName;
+            await searchLocation();
         }
 
         // ============================================================================
@@ -696,9 +777,6 @@
             renderGymCards(delhiGyms, false);
 
             document.getElementById('gymsTitle').textContent = `Gyms near ${DEFAULT_LOCATION.city}`;
-
-            // Setup event listeners
-            document.getElementById('nearbyBtn').addEventListener('click', findNearbyGyms);
 
             // Close modal on Escape key
             document.addEventListener('keydown', (e) => {

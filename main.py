@@ -12,6 +12,8 @@ from typing import Optional, List
 import uvicorn
 import shutil
 from pathlib import Path
+import os
+import requests
 
 from database import GymDatabase, SubscriptionManager, calculate_subscription_plans
 
@@ -38,8 +40,85 @@ sub_manager = SubscriptionManager("subscription_requests.json")
 # Admin password (in production: use environment variable)
 ADMIN_PASSWORD = "habitadmin2025"
 
+# Google Geocoding API key (set via environment variable)
+GOOGLE_GEOCODING_API_KEY = os.getenv("GOOGLE_GEOCODING_API_KEY", "")
+
 # Mount static files
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+
+# ============================================================================
+# HELPER FUNCTIONS - LOCATION SEARCH
+# ============================================================================
+
+def is_pincode(search_text: str) -> bool:
+    """Check if input is a 6-digit Indian pincode"""
+    cleaned = search_text.strip()
+    return cleaned.isdigit() and len(cleaned) == 6
+
+
+def geocode_location(location_text: str) -> dict:
+    """
+    Convert location text to lat/lon using Google Geocoding API
+
+    Args:
+        location_text: City, town, or area (e.g., "Andheri Mumbai")
+
+    Returns:
+        {
+            "lat": 19.1136,
+            "lon": 72.8697,
+            "formatted_address": "Andheri West, Mumbai, Maharashtra, India",
+            "city": "Mumbai"
+        }
+    """
+    if not GOOGLE_GEOCODING_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Google Geocoding API key not configured"
+        )
+
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        "address": location_text,
+        "key": GOOGLE_GEOCODING_API_KEY,
+        "region": "in",  # Bias results to India
+        "components": "country:IN"  # Restrict to India only
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=5)
+        data = response.json()
+
+        if data['status'] == 'OK' and len(data['results']) > 0:
+            result = data['results'][0]
+            location = result['geometry']['location']
+
+            # Extract city from address components
+            city = None
+            for component in result.get('address_components', []):
+                if 'locality' in component['types']:
+                    city = component['long_name']
+                    break
+                elif 'administrative_area_level_2' in component['types']:
+                    city = component['long_name']
+
+            return {
+                "lat": location['lat'],
+                "lon": location['lng'],
+                "formatted_address": result['formatted_address'],
+                "city": city
+            }
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Location not found: {location_text}"
+            )
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error calling Google Geocoding API: {str(e)}"
+        )
 
 
 # ============================================================================
@@ -203,6 +282,80 @@ async def get_nearby_gyms(
         "total": len(gyms),
         "user_location": {"latitude": lat, "longitude": lon}
     }
+
+
+@app.get("/api/gyms/search-by-location")
+async def search_gyms_by_location(
+    location: str = Query(..., description="City, area, or 6-digit pincode"),
+    partner: Optional[str] = Query(None, description="Filter by partner"),
+    limit: int = Query(20, ge=1, le=50, description="Max results")
+):
+    """
+    Search gyms by location text or pincode (optimized for iframe use)
+
+    Supports three search modes:
+    1. Pincode (6 digits): Instant search using pincode index
+    2. Text location: Uses Google Geocoding API + KD-Tree search
+    3. City name: Direct city filtering + distance sort
+
+    Query params:
+        location: "400053" OR "Andheri Mumbai" OR "Mumbai"
+        partner (optional): Filter by partner name
+        limit (optional): Max number of results (default: 20)
+
+    Returns:
+        {
+            "gyms": [...],
+            "total": 10,
+            "search_type": "pincode" | "geocoded" | "city",
+            "location": "Formatted address or pincode",
+            "coordinates": {"lat": 19.11, "lon": 72.86}
+        }
+    """
+    location_clean = location.strip()
+
+    # MODE 1: Pincode Search (Instant, no API call)
+    if is_pincode(location_clean):
+        gyms = db.search_by_pincode(location_clean, limit=limit)
+
+        # Apply partner filter if provided
+        if partner:
+            gyms = [g for g in gyms if g['partner_name'].lower() == partner.lower()]
+
+        return {
+            "gyms": gyms[:limit],
+            "total": len(gyms),
+            "search_type": "pincode",
+            "location": f"Pincode {location_clean}",
+            "coordinates": None
+        }
+
+    # MODE 2: Text Location Search (Google API + KD-Tree)
+    try:
+        geocode_result = geocode_location(location_clean)
+
+        # Use city filter if available to speed up search
+        gyms = db.get_nearby_gyms(
+            user_lat=geocode_result['lat'],
+            user_lon=geocode_result['lon'],
+            partner=partner,
+            city=geocode_result.get('city'),
+            limit=limit
+        )
+
+        return {
+            "gyms": gyms,
+            "total": len(gyms),
+            "search_type": "geocoded",
+            "location": geocode_result['formatted_address'],
+            "coordinates": {
+                "lat": geocode_result['lat'],
+                "lon": geocode_result['lon']
+            }
+        }
+    except HTTPException:
+        # If geocoding fails, return empty result
+        raise
 
 
 @app.get("/api/gyms/{gym_id}")

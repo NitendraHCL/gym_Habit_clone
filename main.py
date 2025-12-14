@@ -1,27 +1,31 @@
 """
-Gym Habit - FastAPI Backend Server
+Gym Habit - FastAPI Backend Server (MongoDB Version)
 Habit Health by HCL Healthcare
 """
 
-from fastapi import FastAPI, HTTPException, File, UploadFile, Query, Form
+from fastapi import FastAPI, HTTPException, Query, Form, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, validator
-from typing import Optional, List
+from typing import Optional
 import uvicorn
-import shutil
-from pathlib import Path
 import os
 import requests
+import csv
+import io
+from datetime import datetime
 
-from database import GymDatabase, SubscriptionManager, calculate_subscription_plans
+from mongo_database import MongoGymDatabase, MongoLeadManager, calculate_subscription_plans
+from mongodb import MongoDB
+from auth import create_access_token, get_current_user, verify_password
+import config
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Gym Habit API",
     description="Partner Gym Finder for Habit Health",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 # CORS middleware
@@ -33,18 +37,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize database and subscription manager
-db = GymDatabase("gyms.csv")
-sub_manager = SubscriptionManager("subscription_requests.json")
-
-# Admin password (in production: use environment variable)
-ADMIN_PASSWORD = "habitadmin2025"
-
-# Google Geocoding API key (set via environment variable)
-GOOGLE_GEOCODING_API_KEY = os.getenv("GOOGLE_GEOCODING_API_KEY", "")
+# Initialize database managers (will be initialized on startup)
+gym_db = MongoGymDatabase()
+lead_manager = MongoLeadManager()
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+
+# ============================================================================
+# STARTUP/SHUTDOWN EVENTS
+# ============================================================================
+
+@app.on_event("startup")
+async def startup_db_client():
+    """Connect to MongoDB on startup"""
+    await MongoDB.connect_db()
+    await gym_db.initialize()
+    await lead_manager.initialize()
+    print("[OK] MongoDB connection initialized")
+
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    """Close MongoDB connection on shutdown"""
+    await MongoDB.close_db()
+    print("[OK] MongoDB connection closed")
 
 
 # ============================================================================
@@ -72,7 +90,7 @@ def geocode_location(location_text: str) -> dict:
             "city": "Mumbai"
         }
     """
-    if not GOOGLE_GEOCODING_API_KEY:
+    if not config.GOOGLE_GEOCODING_API_KEY:
         raise HTTPException(
             status_code=500,
             detail="Google Geocoding API key not configured"
@@ -81,7 +99,7 @@ def geocode_location(location_text: str) -> dict:
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {
         "address": location_text,
-        "key": GOOGLE_GEOCODING_API_KEY,
+        "key": config.GOOGLE_GEOCODING_API_KEY,
         "region": "in",  # Bias results to India
         "components": "country:IN"  # Restrict to India only
     }
@@ -131,7 +149,7 @@ class SubscriptionRequest(BaseModel):
     gym_name: str
     partner_name: str
     full_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = ""
     phone: str
     preferred_plan: str
     billing_address: str
@@ -167,37 +185,10 @@ class SubscriptionRequest(BaseModel):
         return v
 
 
-class GymAddRequest(BaseModel):
-    """Add gym request"""
-    partner_name: str
-    gym_name: str
-    address: str
-    pincode: str
-    latitude: float
-    longitude: float
-    subscription_amount: int
-    amenities: str
-
-    @validator('pincode')
-    def validate_pincode(cls, v):
-        """Validate Indian pincode"""
-        if not v.isdigit() or len(v) != 6:
-            raise ValueError('Pincode must be 6 digits')
-        return v
-
-    @validator('latitude')
-    def validate_latitude(cls, v):
-        """Validate latitude range"""
-        if not -90 <= v <= 90:
-            raise ValueError('Latitude must be between -90 and 90')
-        return v
-
-    @validator('longitude')
-    def validate_longitude(cls, v):
-        """Validate longitude range"""
-        if not -180 <= v <= 180:
-            raise ValueError('Longitude must be between -180 and 180')
-        return v
+class LoginRequest(BaseModel):
+    """Login request"""
+    email: EmailStr
+    password: str
 
 
 # ============================================================================
@@ -232,7 +223,7 @@ async def get_partners():
     Get list of all gym partners with counts
     Returns: {"partners": [{"name": "Cult", "count": 10}], "total": 5}
     """
-    partners = db.get_all_partners()
+    partners = await gym_db.get_all_partners()
     return {
         "partners": partners,
         "total": len(partners)
@@ -247,16 +238,17 @@ async def get_gyms(partner: Optional[str] = None):
         partner (optional): Filter by partner name
     """
     if partner:
-        gyms = db.get_gyms_by_partner(partner)
+        gyms = await gym_db.get_gyms_by_partner(partner)
         return {
             "gyms": gyms,
             "total": len(gyms),
             "partner": partner
         }
     else:
+        gyms = await gym_db.get_all_gyms()
         return {
-            "gyms": db.gyms,
-            "total": len(db.gyms)
+            "gyms": gyms,
+            "total": len(gyms)
         }
 
 
@@ -275,7 +267,7 @@ async def get_nearby_gyms(
         partner (optional): Filter by partner name
         limit (optional): Max number of results (default: 10)
     """
-    gyms = db.get_nearby_gyms(lat, lon, partner, limit)
+    gyms = await gym_db.get_nearby_gyms(lat, lon, partner=partner, limit=limit)
 
     return {
         "gyms": gyms,
@@ -295,7 +287,7 @@ async def search_gyms_by_location(
 
     Supports three search modes:
     1. Pincode (6 digits): Instant search using pincode index
-    2. Text location: Uses Google Geocoding API + KD-Tree search
+    2. Text location: Uses Google Geocoding API + geospatial search
     3. City name: Direct city filtering + distance sort
 
     Query params:
@@ -316,7 +308,7 @@ async def search_gyms_by_location(
 
     # MODE 1: Pincode Search (Instant, no API call)
     if is_pincode(location_clean):
-        gyms = db.search_by_pincode(location_clean, limit=limit)
+        gyms = await gym_db.search_by_pincode(location_clean, limit=limit)
 
         # Apply partner filter if provided
         if partner:
@@ -330,12 +322,12 @@ async def search_gyms_by_location(
             "coordinates": None
         }
 
-    # MODE 2: Text Location Search (Google API + KD-Tree)
+    # MODE 2: Text Location Search (Google API + geospatial)
     try:
         geocode_result = geocode_location(location_clean)
 
         # Use city filter if available to speed up search
-        gyms = db.get_nearby_gyms(
+        gyms = await gym_db.get_nearby_gyms(
             user_lat=geocode_result['lat'],
             user_lon=geocode_result['lon'],
             partner=partner,
@@ -365,7 +357,7 @@ async def get_gym_details(gym_id: int):
     Path param:
         gym_id: Gym ID
     """
-    gym = db.get_gym_by_id(gym_id)
+    gym = await gym_db.get_gym_by_id(gym_id)
 
     if not gym:
         raise HTTPException(status_code=404, detail="Gym not found")
@@ -392,163 +384,702 @@ async def submit_subscription_request(request: SubscriptionRequest):
     """
     try:
         # Validate gym exists
-        gym = db.get_gym_by_id(request.gym_id)
+        gym = await gym_db.get_gym_by_id(request.gym_id)
         if not gym:
             raise HTTPException(status_code=404, detail="Gym not found")
 
-        # Save request
-        request_id = sub_manager.save_request(request.dict())
+        # Save lead
+        lead_id = await lead_manager.save_lead(request.dict())
 
         return {
             "success": True,
             "message": "Thank you! Our wellness team will contact you within 24 hours to help you start your fitness journey.",
-            "request_id": request_id
+            "lead_id": lead_id
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# API ENDPOINTS - AUTHENTICATION
+# ============================================================================
+
+@app.post("/api/auth/login")
+async def login(request: LoginRequest):
+    """
+    Admin/Facilitator login with JWT
+    Body: {"email": "admin@habithealth.com", "password": "Admin@2025"}
+    Returns: {"access_token": "...", "user": {...}}
+    """
+    # Find user
+    user = await MongoDB.db.users.find_one({"email": request.email})
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    # Verify password
+    if not verify_password(request.password, user['password_hash']):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    # Check if user is active
+    if not user.get('is_active', False):
+        raise HTTPException(
+            status_code=403,
+            detail="Account is inactive. Please contact administrator."
+        )
+
+    # Create JWT token
+    token_data = {
+        "user_id": str(user['_id']),
+        "email": user['email'],
+        "role": user['role'],
+        "name": user['name']
+    }
+    access_token = create_access_token(token_data)
+
+    # Update last login
+    from datetime import datetime
+    await MongoDB.db.users.update_one(
+        {"_id": user['_id']},
+        {
+            "$set": {"last_login": datetime.utcnow()},
+            "$inc": {"login_count": 1}
+        }
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "email": user['email'],
+            "name": user['name'],
+            "role": user['role']
+        }
+    }
+
+
+@app.get("/api/auth/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """
+    Get current logged-in user information
+    Requires JWT authentication
+    """
+    # Fetch full user details from database
+    user = await MongoDB.db.users.find_one({"email": current_user['email']})
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "email": user['email'],
+        "name": user['name'],
+        "role": user['role'],
+        "is_active": user.get('is_active', True),
+        "created_at": user.get('created_at'),
+        "last_login": user.get('last_login'),
+        "login_count": user.get('login_count', 0)
+    }
+
+
+@app.post("/api/auth/change-password")
+async def change_password(
+    old_password: str = Form(...),
+    new_password: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Change user password
+    Requires JWT authentication and current password verification
+    """
+    # Validate new password
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be at least 8 characters long"
+        )
+
+    # Get user from database
+    user = await MongoDB.db.users.find_one({"email": current_user['email']})
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Verify old password
+    if not verify_password(old_password, user['password_hash']):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    # Hash new password
+    from auth import hash_password
+    new_password_hash = hash_password(new_password)
+
+    # Update password
+    await MongoDB.db.users.update_one(
+        {"email": current_user['email']},
+        {
+            "$set": {
+                "password_hash": new_password_hash,
+                "password_updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    return {"message": "Password changed successfully"}
+
+
+@app.post("/api/auth/logout")
+async def logout(current_user: dict = Depends(get_current_user)):
+    """
+    Logout endpoint (optional - mostly for client-side token cleanup)
+    In stateless JWT, logout is handled client-side by removing the token
+    This endpoint can be used for audit logging
+    """
+    # Log logout event (optional)
+    await MongoDB.db.users.update_one(
+        {"email": current_user['email']},
+        {"$set": {"last_logout": datetime.utcnow()}}
+    )
+
+    return {"message": "Logged out successfully"}
 
 
 # ============================================================================
 # API ENDPOINTS - ADMIN (Protected)
 # ============================================================================
 
-def verify_admin(password: str):
-    """Verify admin password"""
-    if password != ADMIN_PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid admin password")
+@app.get("/api/admin/leads")
+async def get_leads(
+    current_user: dict = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None),
+    payment_status: Optional[str] = Query(None),
+    city: Optional[str] = Query(None)
+):
+    """
+    Get all leads with filters (admin/facilitator only)
+    Requires JWT authentication
+    """
+    # Calculate skip
+    skip = (page - 1) * per_page
+
+    # Get leads
+    result = await lead_manager.get_all_leads(
+        skip=skip,
+        limit=per_page,
+        status_filter=status,
+        payment_status_filter=payment_status,
+        city_filter=city
+    )
+
+    return result
 
 
-@app.post("/api/admin/login")
-async def admin_login(password: str = Form(...)):
+@app.get("/api/admin/stats")
+async def get_admin_stats(current_user: dict = Depends(get_current_user)):
     """
-    Admin login
-    Form data:
-        password: Admin password
+    Get admin dashboard statistics
+    Requires JWT authentication
     """
-    verify_admin(password)
-    return {"success": True, "message": "Login successful"}
+    # Count leads by status
+    pipeline_status = [
+        {
+            "$group": {
+                "_id": "$status",
+                "count": {"$sum": 1}
+            }
+        }
+    ]
+    status_counts = await MongoDB.db.leads.aggregate(pipeline_status).to_list(None)
 
+    # Count leads by payment status
+    pipeline_payment = [
+        {
+            "$group": {
+                "_id": "$payment.status",
+                "count": {"$sum": 1}
+            }
+        }
+    ]
+    payment_counts = await MongoDB.db.leads.aggregate(pipeline_payment).to_list(None)
 
-@app.get("/api/admin/gyms")
-async def admin_get_gyms(password: str = Query(...)):
-    """
-    Get all gyms (admin view)
-    Query param:
-        password: Admin password
-    """
-    verify_admin(password)
+    # Total gyms
+    total_gyms = await MongoDB.db.gyms.count_documents({"is_active": True})
+
+    # Total leads
+    total_leads = await MongoDB.db.leads.count_documents({})
 
     return {
-        "gyms": db.gyms,
-        "total": len(db.gyms)
+        "total_leads": total_leads,
+        "total_gyms": total_gyms,
+        "status_breakdown": {item['_id']: item['count'] for item in status_counts},
+        "payment_breakdown": {item['_id']: item['count'] for item in payment_counts}
     }
 
 
-@app.post("/api/admin/gyms/add")
-async def admin_add_gym(
-    password: str = Query(...),
-    gym_data: GymAddRequest = None
+@app.get("/api/admin/leads/{lead_id}")
+async def get_lead_details(
+    lead_id: str,
+    current_user: dict = Depends(get_current_user)
 ):
     """
-    Add new gym
-    Query param:
-        password: Admin password
-    Body:
-        GymAddRequest model
+    Get detailed information for a specific lead
+    Requires JWT authentication
     """
-    verify_admin(password)
+    lead = await lead_manager.get_lead_by_id(lead_id)
 
-    try:
-        new_id = db.add_gym(gym_data.dict())
-        return {
-            "success": True,
-            "gym_id": new_id,
-            "message": "Gym added successfully"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if not lead:
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    return lead
 
 
-@app.delete("/api/admin/gyms/{gym_id}")
-async def admin_delete_gym(
-    gym_id: int,
-    password: str = Query(...)
+@app.patch("/api/admin/leads/{lead_id}/status")
+async def update_lead_status_endpoint(
+    lead_id: str,
+    status: str = Form(...),
+    reason: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user)
 ):
     """
-    Delete gym
-    Path param:
-        gym_id: Gym ID
-    Query param:
-        password: Admin password
+    Update lead status
+    Valid statuses: new, contacted, interested, not_interested, closed
     """
-    verify_admin(password)
+    valid_statuses = ["new", "contacted", "interested", "not_interested", "closed"]
 
-    success = db.delete_gym(gym_id)
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+        )
+
+    success = await lead_manager.update_lead_status(
+        lead_id=lead_id,
+        new_status=status,
+        updated_by=current_user['email'],
+        reason=reason
+    )
 
     if not success:
-        raise HTTPException(status_code=404, detail="Gym not found")
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
 
-    return {
-        "success": True,
-        "message": "Gym deleted successfully"
-    }
+    return {"message": "Status updated successfully", "lead_id": lead_id, "new_status": status}
 
 
-@app.post("/api/admin/gyms/upload-csv")
-async def admin_upload_csv(
-    password: str = Form(...),
-    file: UploadFile = File(...)
+@app.post("/api/admin/leads/{lead_id}/comments")
+async def add_comment_endpoint(
+    lead_id: str,
+    comment: str = Form(...),
+    current_user: dict = Depends(get_current_user)
 ):
     """
-    Upload CSV to replace all gyms
-    Form data:
-        password: Admin password
-        file: CSV file
+    Add a comment to a lead
     """
-    verify_admin(password)
+    if not comment or len(comment.strip()) == 0:
+        raise HTTPException(status_code=400, detail="Comment cannot be empty")
 
-    # Validate file type
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="File must be CSV")
+    success = await lead_manager.add_comment(
+        lead_id=lead_id,
+        comment_text=comment,
+        added_by=current_user['email']
+    )
 
-    try:
-        # Save uploaded file
-        upload_path = "uploaded_gyms.csv"
-        with open(upload_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
 
-        # Replace gyms
-        count = db.replace_all_gyms(upload_path)
-
-        # Clean up
-        Path(upload_path).unlink()
-
-        return {
-            "success": True,
-            "gyms_loaded": count,
-            "message": f"CSV uploaded successfully. {count} gyms loaded."
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error uploading CSV: {str(e)}")
+    return {"message": "Comment added successfully", "lead_id": lead_id}
 
 
-@app.get("/api/admin/subscriptions")
-async def admin_get_subscriptions(password: str = Query(...)):
+@app.patch("/api/admin/leads/{lead_id}/payment")
+async def update_payment_endpoint(
+    lead_id: str,
+    payment_status: str = Form(...),
+    payment_link: Optional[str] = Form(None),
+    amount: Optional[int] = Form(None),
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Get all subscription requests
-    Query param:
-        password: Admin password
+    Update payment information for a lead
+    Valid payment statuses: pending, link_shared, paid, failed
     """
-    verify_admin(password)
+    valid_payment_statuses = ["pending", "link_shared", "paid", "failed"]
 
-    requests = sub_manager.get_all_requests()
+    if payment_status not in valid_payment_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid payment status. Must be one of: {', '.join(valid_payment_statuses)}"
+        )
+
+    success = await lead_manager.update_payment(
+        lead_id=lead_id,
+        payment_status=payment_status,
+        updated_by=current_user['email'],
+        payment_link=payment_link,
+        amount=amount
+    )
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
 
     return {
-        "requests": requests,
-        "total": len(requests)
+        "message": "Payment updated successfully",
+        "lead_id": lead_id,
+        "payment_status": payment_status
     }
+
+
+@app.patch("/api/admin/leads/{lead_id}/plan")
+async def update_plan_endpoint(
+    lead_id: str,
+    new_plan: str = Form(...),
+    reason: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update the membership plan for a lead
+    Valid plans: 1 Month, 3 Months, 6 Months, 12 Months
+    """
+    valid_plans = ["1 Month", "3 Months", "6 Months", "12 Months"]
+
+    if new_plan not in valid_plans:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid plan. Must be one of: {', '.join(valid_plans)}"
+        )
+
+    success = await lead_manager.update_plan(
+        lead_id=lead_id,
+        new_plan=new_plan,
+        updated_by=current_user['email'],
+        reason=reason
+    )
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    return {"message": "Plan updated successfully", "lead_id": lead_id, "new_plan": new_plan}
+
+
+@app.get("/api/admin/leads/{lead_id}/audit")
+async def get_audit_trail_endpoint(
+    lead_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get audit trail for a lead
+    Returns all changes made to the lead
+    """
+    audit_trail = await lead_manager.get_audit_trail(lead_id)
+
+    if audit_trail is None:
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    return {"lead_id": lead_id, "audit_trail": audit_trail}
+
+
+@app.get("/api/admin/reports/leads.csv")
+async def export_leads_csv(
+    current_user: dict = Depends(get_current_user),
+    status: Optional[str] = Query(None),
+    payment_status: Optional[str] = Query(None),
+    city: Optional[str] = Query(None),
+    from_date: Optional[str] = Query(None),
+    to_date: Optional[str] = Query(None)
+):
+    """
+    Export leads to CSV with optional filters
+    Requires JWT authentication
+    """
+    # Parse date filters if provided
+    date_from = None
+    date_to = None
+
+    if from_date:
+        try:
+            date_from = datetime.strptime(from_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid from_date format. Use YYYY-MM-DD")
+
+    if to_date:
+        try:
+            date_to = datetime.strptime(to_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid to_date format. Use YYYY-MM-DD")
+
+    # Get all leads (no pagination for export)
+    result = await lead_manager.get_all_leads(
+        skip=0,
+        limit=10000,  # Max 10k records for CSV
+        status_filter=status,
+        payment_status_filter=payment_status,
+        city_filter=city,
+        date_from=date_from,
+        date_to=date_to
+    )
+
+    leads = result.get('leads', [])
+
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write header
+    writer.writerow([
+        "Lead ID",
+        "Created At",
+        "Status",
+        "Full Name",
+        "Email",
+        "Phone",
+        "City",
+        "Gym Name",
+        "Partner",
+        "Preferred Plan",
+        "Payment Status",
+        "Payment Amount",
+        "Payment Link",
+        "Billing Address",
+        "Message",
+        "Comments Count"
+    ])
+
+    # Write data rows
+    for lead in leads:
+        created_at = lead.get('created_at', '')
+        if isinstance(created_at, datetime):
+            created_at = created_at.strftime('%Y-%m-%d %H:%M:%S')
+
+        user_location = lead.get('user_location', {})
+        payment = lead.get('payment', {})
+        comments = lead.get('comments', [])
+
+        writer.writerow([
+            lead.get('lead_id', ''),
+            created_at,
+            lead.get('status', ''),
+            lead.get('full_name', ''),
+            lead.get('email', ''),
+            lead.get('phone', ''),
+            user_location.get('city', ''),
+            lead.get('gym_name', ''),
+            lead.get('partner_name', ''),
+            lead.get('preferred_plan', ''),
+            payment.get('status', ''),
+            payment.get('amount', ''),
+            payment.get('payment_link', ''),
+            lead.get('billing_address', ''),
+            lead.get('message', ''),
+            len(comments)
+        ])
+
+    # Get CSV content
+    csv_content = output.getvalue()
+    output.close()
+
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"gym_habit_leads_{timestamp}.csv"
+
+    # Return as streaming response
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+# ============================================================================
+# API ENDPOINTS - USER MANAGEMENT (Admin Only)
+# ============================================================================
+
+@app.get("/api/admin/users")
+async def get_all_users(current_user: dict = Depends(get_current_user)):
+    """
+    Get all users (admin only)
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    # Fetch all users
+    users = await MongoDB.db.users.find({}).to_list(None)
+
+    # Remove sensitive data
+    safe_users = []
+    for user in users:
+        safe_users.append({
+            "user_id": str(user['_id']),
+            "email": user['email'],
+            "name": user['name'],
+            "role": user['role'],
+            "is_active": user.get('is_active', True),
+            "created_at": user.get('created_at'),
+            "last_login": user.get('last_login'),
+            "login_count": user.get('login_count', 0)
+        })
+
+    return {"users": safe_users, "total": len(safe_users)}
+
+
+@app.post("/api/admin/users")
+async def create_user(
+    email: EmailStr = Form(...),
+    name: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Create a new user (admin only)
+    Valid roles: admin, facilitator, viewer
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    # Validate role
+    valid_roles = ["admin", "facilitator", "viewer"]
+    if role not in valid_roles:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+        )
+
+    # Validate password
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters long"
+        )
+
+    # Check if user already exists
+    existing_user = await MongoDB.db.users.find_one({"email": email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail=f"User with email {email} already exists")
+
+    # Hash password
+    from auth import hash_password
+    password_hash = hash_password(password)
+
+    # Create user document
+    new_user = {
+        "email": email,
+        "name": name,
+        "password_hash": password_hash,
+        "role": role,
+        "is_active": True,
+        "created_at": datetime.utcnow(),
+        "created_by": current_user['email'],
+        "login_count": 0
+    }
+
+    # Insert user
+    result = await MongoDB.db.users.insert_one(new_user)
+
+    return {
+        "message": "User created successfully",
+        "user": {
+            "user_id": str(result.inserted_id),
+            "email": email,
+            "name": name,
+            "role": role
+        }
+    }
+
+
+@app.patch("/api/admin/users/{user_id}")
+async def update_user(
+    user_id: str,
+    role: Optional[str] = Form(None),
+    is_active: Optional[bool] = Form(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update user role or active status (admin only)
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    # Validate role if provided
+    if role is not None:
+        valid_roles = ["admin", "facilitator", "viewer"]
+        if role not in valid_roles:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+            )
+
+    # Build update document
+    from bson import ObjectId
+    update_data = {"updated_at": datetime.utcnow(), "updated_by": current_user['email']}
+
+    if role is not None:
+        update_data["role"] = role
+
+    if is_active is not None:
+        update_data["is_active"] = is_active
+
+    # Update user
+    try:
+        result = await MongoDB.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": update_data}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid user ID: {str(e)}")
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+
+    return {"message": "User updated successfully", "user_id": user_id}
+
+
+@app.delete("/api/admin/users/{user_id}")
+async def deactivate_user(
+    user_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Deactivate a user (admin only)
+    Note: Users are not deleted, just marked as inactive
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    # Prevent self-deactivation
+    if user_id == current_user.get('user_id'):
+        raise HTTPException(status_code=400, detail="Cannot deactivate your own account")
+
+    # Deactivate user
+    from bson import ObjectId
+    try:
+        result = await MongoDB.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "is_active": False,
+                    "deactivated_at": datetime.utcnow(),
+                    "deactivated_by": current_user['email']
+                }
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid user ID: {str(e)}")
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+
+    return {"message": "User deactivated successfully", "user_id": user_id}
 
 
 # ============================================================================
@@ -558,10 +1089,14 @@ async def admin_get_subscriptions(password: str = Query(...)):
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring"""
+    total_gyms = await MongoDB.db.gyms.count_documents({"is_active": True})
+    partners = await gym_db.get_all_partners()
+
     return {
         "status": "healthy",
-        "gyms_loaded": len(db.gyms),
-        "partners": len(db.get_all_partners())
+        "database": "mongodb",
+        "gyms_loaded": total_gyms,
+        "partners": len(partners)
     }
 
 
@@ -571,13 +1106,9 @@ async def health_check():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("GYM HABIT - Habit Health Partner Gym Finder")
+    print("GYM HABIT - Habit Health Partner Gym Finder (MongoDB)")
     print("=" * 60)
-    print(f"[OK] Loaded {len(db.gyms)} gyms from database")
-    print(f"[OK] Available partners: {len(db.get_all_partners())}")
-    print(f"[ADMIN] Admin password: {ADMIN_PASSWORD}")
-    print("=" * 60)
-    print("[STARTING] Starting server...")
+    print("[INFO] Starting server...")
     print("[INFO] Main page: http://localhost:8000")
     print("[INFO] Admin panel: http://localhost:8000/admin")
     print("[INFO] API docs: http://localhost:8000/docs")

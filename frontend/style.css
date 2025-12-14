@@ -204,10 +204,10 @@ body {
    HERO SECTION - VIBRANT & IMPACTFUL
    ============================================================================ */
 .hero {
-    background: linear-gradient(135deg, #0056B3 0%, #00A8E8 50%, #FF8C00 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #ffedd5 100%);
     position: relative;
     overflow: hidden;
-    padding: var(--space-4xl) 0;
+    padding: var(--space-2xl) 0;
 }
 
 .hero::before {
@@ -250,23 +250,33 @@ body {
 /* Tablet and below */
 @media (max-width: 1023px) {
     .hero {
-        padding: var(--space-2xl) 0;  /* 36px */
+        padding: var(--space-lg) 0;  /* 24px - reduced */
     }
 }
 
 /* Mobile */
 @media (max-width: 767px) {
     .hero {
-        padding: var(--space-xl) 0;  /* 24px */
+        padding: var(--space-md) 0;  /* 16px - minimal padding */
     }
 
     .hero-title {
-        font-size: var(--font-size-3xl);
+        font-size: var(--font-size-2xl);  /* Smaller on mobile */
     }
 
     .hero-subtitle {
-        font-size: var(--font-size-lg);
+        font-size: var(--font-size-base);
     }
+
+    /* Hide "Find Partner Gyms" title on mobile and all screens */
+    .page-title {
+        display: none;
+    }
+}
+
+/* Hide page title on all screen sizes */
+.page-title {
+    display: none;
 }
 
 /* ============================================================================
@@ -296,7 +306,7 @@ body {
    BRAND FILTERS - MODERN CHIPS
    ============================================================================ */
 .brands-section {
-    padding: var(--space-3xl) 0;
+    padding: var(--space-xl) 0;  /* Reduced from 3xl to xl */
     background: var(--bg-card);
 }
 
@@ -354,7 +364,7 @@ body {
 /* Responsive padding for sections */
 @media (max-width: 767px) {
     .brands-section {
-        padding: var(--space-xl) 0;  /* 24px on mobile */
+        padding: var(--space-md) 0;  /* Reduced padding on mobile */
     }
 
     .brand-chip {
@@ -512,7 +522,7 @@ body {
    LOCATION SECTION - VIBRANT
    ============================================================================ */
 .gyms-section {
-    padding: var(--space-3xl) 0;
+    padding: var(--space-xl) 0;  /* Reduced from 3xl to xl */
 }
 
 .location-section {
@@ -562,7 +572,7 @@ body {
 
 @media (max-width: 767px) {
     .gyms-section {
-        padding: var(--space-xl) 0;  /* 24px on mobile */
+        padding: var(--space-md) 0;  /* Reduced padding on mobile */
     }
 }
 

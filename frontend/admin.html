@@ -63,7 +63,7 @@
             font-size: 32px;
             font-weight: 700;
             margin-bottom: 8px;
-            color: var(--text-primary);
+            color: var(--primary);
             letter-spacing: -0.5px;
         }
 
@@ -160,12 +160,94 @@
         }
 
         /* Tabs */
-        .tabs {
+        /* SIDEBAR LAYOUT */
+        .dashboard-container {
             display: flex;
-            gap: 8px;
-            border-bottom: 2px solid var(--border);
-            margin-bottom: 30px;
-            overflow-x: auto;
+            min-height: 100vh;
+            background: var(--bg-base);
+        }
+
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 4px;
+        }
+
+        .sidebar-nav {
+            padding: 12px 0;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: rgba(255, 255, 255, 0.9);
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .sidebar-item.active {
+            background: rgba(255, 255, 255, 0.15);
+            border-left-color: #60a5fa;
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 0;
+            width: calc(100% - 260px);
+        }
+
+        /* Hide old tabs styling */
+        .tabs {
+            display: none;
         }
 
         .tab {
@@ -630,24 +712,61 @@
 
 <!-- Dashboard -->
 <div id="dashboardScreen" class="dashboard">
-    <!-- Header -->
-    <div class="header">
-        <div class="container header-content">
-            <div>
-                <h1 style="font-size: 24px; font-weight: 700;">Gym Habit Admin</h1>
-            </div>
-            <div class="user-info">
-                <div class="user-avatar" id="userAvatar">A</div>
-                <div>
-                    <div style="font-weight: 600; font-size: 14px;" id="userName">Admin</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);" id="userRole">admin</div>
-                </div>
-                <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">Gym Habit</h2>
+            <div class="sidebar-subtitle">Admin Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="sidebar-item active" onclick="switchTab('leads')">
+                <span class="sidebar-icon">📋</span>
+                <span>Leads</span>
+            </button>
+            <button class="sidebar-item" onclick="switchTab('gyms')">
+                <span class="sidebar-icon">🏋️</span>
+                <span>Gyms</span>
+            </button>
+            <button class="sidebar-item" onclick="switchTab('partners')">
+                <span class="sidebar-icon">🤝</span>
+                <span>Partners</span>
+            </button>
+            <button class="sidebar-item" id="sidebarUsersTab" style="display: none;" onclick="switchTab('users')">
+                <span class="sidebar-icon">👥</span>
+                <span>Users</span>
+            </button>
+        </nav>
+        <div style="position: absolute; bottom: 0; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <div style="padding: 16px 20px;">
+                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-bottom: 8px;" id="sidebarUserName">Admin</div>
+                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-bottom: 12px;" id="sidebarUserRole">admin</div>
+                <button class="btn btn-sm" onclick="logout()" style="background: rgba(255, 255, 255, 0.1); color: white; width: 100%; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <span style="margin-right: 8px;">🚪</span> Logout
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="container">
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="container header-content">
+                <div>
+                    <h1 style="font-size: 24px; font-weight: 700; color: var(--primary);">Dashboard</h1>
+                </div>
+                <div class="user-info" style="display: none;">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;" id="userName">Admin</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);" id="userRole">admin</div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
         <!-- Stats -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -810,8 +929,9 @@
                 </table>
             </div>
         </div>
-    </div>
-</div>
+        </div><!-- Close container -->
+    </div><!-- Close main-content -->
+</div><!-- Close dashboard -->
 
 <!-- Lead Detail Modal -->
 <div id="leadModal" class="modal">
@@ -1196,14 +1316,19 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboardScreen').classList.add('active');
 
-        // Set user info
+        // Set user info in header
         document.getElementById('userName').textContent = currentUser.name || currentUser.email;
         document.getElementById('userRole').textContent = currentUser.role;
         document.getElementById('userAvatar').textContent = (currentUser.name || currentUser.email)[0].toUpperCase();
 
+        // Set user info in sidebar
+        document.getElementById('sidebarUserName').textContent = currentUser.name || currentUser.email;
+        document.getElementById('sidebarUserRole').textContent = currentUser.role;
+
         // Show users tab only for admin
         if (currentUser.role === 'admin') {
             document.getElementById('usersTab').style.display = 'block';
+            document.getElementById('sidebarUsersTab').style.display = 'flex';
         }
     }
 
@@ -1792,12 +1917,24 @@
 
     // Tab switching
     function switchTab(tab) {
+        // Update sidebar navigation
+        document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
 
-        event.target.classList.add('active');
+        // Activate clicked sidebar item
+        if (event && event.target) {
+            event.target.classList.add('active');
+            // If clicked on icon or text inside button, activate parent button
+            if (event.target.tagName !== 'BUTTON') {
+                event.target.closest('button').classList.add('active');
+            }
+        }
+
+        // Activate tab content
         document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
 
+        // Load data for specific tabs
         if (tab === 'users') {
             loadUsers();
         } else if (tab === 'gyms') {
@@ -1831,7 +1968,8 @@
             const response = await fetch('/api/gyms', {
                 headers: { 'Authorization': `Bearer ${authToken}` }
             });
-            const gyms = await response.json();
+            const data = await response.json();
+            const gyms = data.gyms || [];  // ← FIX: Extract gyms array from response
 
             const table = document.getElementById('gymsTable');
             if (!gyms || gyms.length === 0) {
@@ -1845,7 +1983,7 @@
                     <td>${gym.partner_name}</td>
                     <td>${gym.city}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.address}</td>
-                    <td>${gym.amenities ? gym.amenities.slice(0, 3).join(', ') + (gym.amenities.length > 3 ? '...' : '') : 'N/A'}</td>
+                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.amenities || 'N/A'}</td>
                     <td>
                         <button class="btn btn-sm btn-danger" onclick="deleteGym('${gym.id || gym._id}')">Delete</button>
                     </td>

@@ -209,6 +209,7 @@ class GymCreateRequest(BaseModel):
     longitude: float
     amenities: list[str]
     subscription_amount: Optional[int] = 1499
+    icon: Optional[str] = None  # Emoji or base64 image
 
     @field_validator('pincode')
     @classmethod
@@ -231,6 +232,7 @@ class PartnerCreateRequest(BaseModel):
     """Request model for creating a new partner"""
     name: str
     description: Optional[str] = ""
+    icon: Optional[str] = None  # Emoji or base64 image
 
     @field_validator('name')
     @classmethod
@@ -683,11 +685,18 @@ async def get_lead_details(
     """
     Get detailed information for a specific lead
     Requires JWT authentication
+    Auto-assigns lead to current user when viewed
     """
     lead = await lead_manager.get_lead_by_id(lead_id)
 
     if not lead:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    # Assign lead to current user when they view it
+    await lead_manager.assign_lead(lead_id, current_user['email'], current_user['name'])
+
+    # Fetch updated lead with assignment
+    lead = await lead_manager.get_lead_by_id(lead_id)
 
     return lead
 
@@ -721,6 +730,9 @@ async def update_lead_status_endpoint(
     if not success:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
 
+    # Assign lead to user who made the change
+    await lead_manager.assign_lead(lead_id, current_user['email'], current_user.get('name', current_user['email']))
+
     return {"message": "Status updated successfully", "lead_id": lead_id, "new_status": status}
 
 
@@ -744,6 +756,9 @@ async def add_comment_endpoint(
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    # Assign lead to user who made the change
+    await lead_manager.assign_lead(lead_id, current_user['email'], current_user.get('name', current_user['email']))
 
     return {"message": "Comment added successfully", "lead_id": lead_id}
 
@@ -778,6 +793,9 @@ async def update_payment_endpoint(
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    # Assign lead to user who made the change
+    await lead_manager.assign_lead(lead_id, current_user['email'], current_user.get('name', current_user['email']))
 
     return {
         "message": "Payment updated successfully",
@@ -814,6 +832,9 @@ async def update_plan_endpoint(
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    # Assign lead to user who made the change
+    await lead_manager.assign_lead(lead_id, current_user['email'], current_user.get('name', current_user['email']))
 
     return {"message": "Plan updated successfully", "lead_id": lead_id, "new_plan": new_plan}
 
@@ -864,7 +885,8 @@ async def create_gym_endpoint(
             latitude=request.latitude,
             longitude=request.longitude,
             amenities=request.amenities,
-            subscription_amount=request.subscription_amount
+            subscription_amount=request.subscription_amount,
+            icon=request.icon
         )
 
         return {
@@ -983,7 +1005,8 @@ async def create_partner_endpoint(
 
     success = await gym_db.create_partner_entry(
         partner_name=request.name,
-        description=request.description
+        description=request.description,
+        icon=request.icon
     )
 
     if not success:
@@ -1236,6 +1259,70 @@ async def get_all_users(current_user: dict = Depends(get_current_user)):
 
     return {"users": safe_users, "total": len(safe_users)}
 
+
+
+@app.put("/api/admin/gyms/{gym_id}")
+async def update_gym_endpoint(
+    gym_id: int,
+    request: GymCreateRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update an existing gym (admin only)
+    """
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    try:
+        success = await gym_db.update_gym(
+            gym_id=gym_id,
+            gym_name=request.gym_name,
+            partner_name=request.partner_name,
+            address=request.address,
+            city=request.city,
+            state=request.state,
+            pincode=request.pincode,
+            latitude=request.latitude,
+            longitude=request.longitude,
+            amenities=request.amenities,
+            subscription_amount=request.subscription_amount,
+            icon=request.icon
+        )
+
+        if not success:
+            raise HTTPException(status_code=404, detail="Gym not found")
+
+        return {"message": "Gym updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/partners/{partner_name}")
+async def update_partner_endpoint(
+    partner_name: str,
+    request: PartnerCreateRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update an existing partner (admin only)
+    """
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    try:
+        success = await gym_db.update_partner(
+            old_name=partner_name,
+            new_name=request.name,
+            description=request.description,
+            icon=request.icon
+        )
+
+        if not success:
+            raise HTTPException(status_code=404, detail="Partner not found")
+
+        return {"message": "Partner updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/admin/users")
 async def create_user(

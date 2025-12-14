@@ -720,19 +720,19 @@
         </div>
         <nav class="sidebar-nav">
             <button class="sidebar-item active" onclick="switchTab('leads')">
-                <span class="sidebar-icon">📋</span>
+                <span class="sidebar-icon">📝</span>
                 <span>Leads</span>
             </button>
             <button class="sidebar-item" onclick="switchTab('gyms')">
-                <span class="sidebar-icon">🏋️</span>
+                <span class="sidebar-icon">🏢</span>
                 <span>Gyms</span>
             </button>
             <button class="sidebar-item" onclick="switchTab('partners')">
-                <span class="sidebar-icon">🤝</span>
+                <span class="sidebar-icon">🔗</span>
                 <span>Partners</span>
             </button>
             <button class="sidebar-item" id="sidebarUsersTab" style="display: none;" onclick="switchTab('users')">
-                <span class="sidebar-icon">👥</span>
+                <span class="sidebar-icon">👤</span>
                 <span>Users</span>
             </button>
         </nav>
@@ -841,6 +841,7 @@
                             <th>Plan</th>
                             <th>Status</th>
                             <th>Payment</th>
+                            <th>Assigned To</th>
                             <th>Created</th>
                             <th>Actions</th>
                         </tr>
@@ -859,8 +860,8 @@
         <!-- Tab: Gyms -->
         <div id="tabGyms" class="tab-content">
             <div style="margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
-                <button class="btn btn-primary" onclick="showAddGymModal()">➕ Add Gym</button>
-                <button class="btn btn-secondary" onclick="showUploadGymsModal()">📁 Upload CSV</button>
+                <button class="btn btn-primary" id="addGymBtn" onclick="showAddGymModal()">➕ Add Gym</button>
+                <button class="btn btn-secondary" id="uploadGymsBtn" onclick="showUploadGymsModal()">📁 Upload CSV</button>
             </div>
 
             <div class="table-container">
@@ -885,7 +886,7 @@
         <!-- Tab: Partners -->
         <div id="tabPartners" class="tab-content">
             <div style="margin-bottom: 20px;">
-                <button class="btn btn-primary" onclick="showAddPartnerModal()">➕ Add Partner</button>
+                <button class="btn btn-primary" id="addPartnerBtn" onclick="showAddPartnerModal()">➕ Add Partner</button>
             </div>
 
             <div class="table-container">
@@ -993,6 +994,23 @@
                     <label>Amenities (comma-separated)</label>
                     <input type="text" id="gymAmenities" placeholder="Cardio, Weights, Yoga, Swimming">
                 </div>
+                <div class="form-group">
+                    <label>Gym Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="gymIconEmoji" placeholder="Enter emoji (e.g., 🏋️, 💪, 🏃)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="gymIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="gymIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="gymIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
@@ -1057,11 +1075,147 @@
                     <label>Description</label>
                     <textarea id="partnerDescription" rows="3" placeholder="Brief description about the partner"></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Partner Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="partnerIconEmoji" placeholder="Enter emoji (e.g., 🤝, 🏢, 💼)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="partnerIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="partnerIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="partnerIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
             <button class="btn" onclick="closeAddPartnerModal()">Cancel</button>
             <button class="btn btn-primary" onclick="submitAddPartner()">Add Partner</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Edit Gym Modal -->
+<div id="editGymModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Gym</h2>
+            <button class="close-btn" onclick="closeEditGymModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editGymForm">
+                <input type="hidden" id="editGymId">
+                <div class="form-group">
+                    <label>Gym Name *</label>
+                    <input type="text" id="editGymName" required>
+                </div>
+                <div class="form-group">
+                    <label>Partner *</label>
+                    <select id="editGymPartner" required>
+                        <option value="">Select partner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Address *</label>
+                    <textarea id="editGymAddress" rows="2" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>City *</label>
+                    <input type="text" id="editGymCity" required>
+                </div>
+                <div class="form-group">
+                    <label>State *</label>
+                    <input type="text" id="editGymState" required>
+                </div>
+                <div class="form-group">
+                    <label>PIN Code *</label>
+                    <input type="text" id="editGymPincode" pattern="[0-9]{6}" maxlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label>Latitude *</label>
+                    <input type="number" id="editGymLatitude" step="any" required placeholder="e.g., 19.0760">
+                </div>
+                <div class="form-group">
+                    <label>Longitude *</label>
+                    <input type="number" id="editGymLongitude" step="any" required placeholder="e.g., 72.8777">
+                </div>
+                <div class="form-group">
+                    <label>Amenities (comma-separated)</label>
+                    <input type="text" id="editGymAmenities" placeholder="Cardio, Weights, Yoga, Swimming">
+                </div>
+                <div class="form-group">
+                    <label>Gym Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="editGymIconEmoji" placeholder="Enter emoji (e.g., 🏋️, 💪, 🏃)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="editGymIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="editGymIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="editGymIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeEditGymModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitEditGym()">Update Gym</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Partner Modal -->
+<div id="editPartnerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Partner</h2>
+            <button class="close-btn" onclick="closeEditPartnerModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editPartnerForm">
+                <input type="hidden" id="editPartnerOldName">
+                <div class="form-group">
+                    <label>Partner Name *</label>
+                    <input type="text" id="editPartnerName" required placeholder="e.g., Gold's Gym">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editPartnerDescription" rows="3" placeholder="Brief description about the partner"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Partner Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="editPartnerIconEmoji" placeholder="Enter emoji (e.g., 🤝, 🏢, 💼)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="editPartnerIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="editPartnerIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="editPartnerIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeEditPartnerModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitEditPartner()">Update Partner</button>
         </div>
     </div>
 </div>
@@ -1325,10 +1479,23 @@
         document.getElementById('sidebarUserName').textContent = currentUser.name || currentUser.email;
         document.getElementById('sidebarUserRole').textContent = currentUser.role;
 
-        // Show users tab only for admin
+        // Show/hide features based on role
         if (currentUser.role === 'admin') {
+            // Admin can see and do everything
             document.getElementById('usersTab').style.display = 'block';
             document.getElementById('sidebarUsersTab').style.display = 'flex';
+            // Admin can add gyms and partners
+            if (document.getElementById('addGymBtn')) document.getElementById('addGymBtn').style.display = 'inline-block';
+            if (document.getElementById('uploadGymsBtn')) document.getElementById('uploadGymsBtn').style.display = 'inline-block';
+            if (document.getElementById('addPartnerBtn')) document.getElementById('addPartnerBtn').style.display = 'inline-block';
+        } else {
+            // Facilitator (support) - hide admin-only features
+            document.getElementById('usersTab').style.display = 'none';
+            document.getElementById('sidebarUsersTab').style.display = 'none';
+            // Hide gym and partner management
+            if (document.getElementById('addGymBtn')) document.getElementById('addGymBtn').style.display = 'none';
+            if (document.getElementById('uploadGymsBtn')) document.getElementById('uploadGymsBtn').style.display = 'none';
+            if (document.getElementById('addPartnerBtn')) document.getElementById('addPartnerBtn').style.display = 'none';
         }
     }
 
@@ -1397,11 +1564,16 @@
         const tbody = document.getElementById('leadsTable');
 
         if (!leads || leads.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No leads found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No leads found</td></tr>';
             return;
         }
 
-        tbody.innerHTML = leads.map(lead => `
+        tbody.innerHTML = leads.map(lead => {
+            const date = new Date(lead.created_at);
+            const formattedDateTime = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const assignedName = lead.assigned_to_name || lead.assigned_to || '';
+            const assignedBadge = assignedName ? `<span class="badge badge-paid">${assignedName}</span>` : '<span class="badge badge-pending">Unassigned</span>';
+            return `
             <tr>
                 <td>${lead.lead_id}</td>
                 <td>${lead.full_name}</td>
@@ -1410,10 +1582,12 @@
                 <td>${lead.preferred_plan}</td>
                 <td><span class="badge badge-${lead.status}">${lead.status}</span></td>
                 <td><span class="badge badge-${lead.payment.status}">${lead.payment.status}</span></td>
-                <td>${new Date(lead.created_at).toLocaleDateString()}</td>
+                <td>${assignedBadge}</td>
+                <td style="white-space: nowrap;">${formattedDateTime}</td>
                 <td><button class="btn btn-sm btn-primary" onclick="viewLead('${lead.lead_id}')">View</button></td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function renderPagination(current, total) {
@@ -1454,6 +1628,18 @@
 
             const lead = await response.json();
             renderLeadDetail(lead);
+
+            // Hide audit trail and change plan for facilitator
+            if (currentUser.role === 'facilitator') {
+                setTimeout(() => {
+                    if (document.getElementById('viewAuditBtn')) {
+                        document.getElementById('viewAuditBtn').style.display = 'none';
+                    }
+                    if (document.getElementById('changePlanBtn')) {
+                        document.getElementById('changePlanBtn').style.display = 'none';
+                    }
+                }, 100);
+            }
         } catch (error) {
             document.getElementById('leadModalBody').innerHTML = '<p style="color: red;">Error loading lead details</p>';
         }
@@ -1511,8 +1697,8 @@
                 <button class="btn btn-sm btn-primary" onclick="updateStatus()">Update Status</button>
                 <button class="btn btn-sm btn-secondary" onclick="addComment()">Add Comment</button>
                 <button class="btn btn-sm btn-success" onclick="updatePayment()">Update Payment</button>
-                <button class="btn btn-sm" onclick="updatePlan()">Change Plan</button>
-                <button class="btn btn-sm" onclick="viewAudit()">View Audit Trail</button>
+                <button class="btn btn-sm" id="changePlanBtn" onclick="updatePlan()">Change Plan</button>
+                <button class="btn btn-sm" id="viewAuditBtn" onclick="viewAudit()">View Audit Trail</button>
             </div>
 
             <div class="section-title" style="margin-top: 24px;">Comments (${lead.comments?.length || 0})</div>
@@ -1985,6 +2171,7 @@
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.address}</td>
                     <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.amenities || 'N/A'}</td>
                     <td>
+                        <button class="btn btn-sm btn-primary" onclick="editGym('${gym.id || gym._id}')">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteGym('${gym.id || gym._id}')">Delete</button>
                     </td>
                 </tr>
@@ -2030,6 +2217,27 @@
             longitude: parseFloat(document.getElementById('gymLongitude').value),
             amenities: document.getElementById('gymAmenities').value.split(',').map(a => a.trim()).filter(a => a)
         };
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('gymIconEmoji').value;
+        const iconFile = document.getElementById('gymIconFile').files[0];
+
+        if (iconEmoji) {
+            gymData.icon = iconEmoji;
+        } else if (iconFile) {
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                gymData.icon = base64;
+            } catch (error) {
+                showToast('Error reading image file', 'error');
+                return;
+            }
+        }
 
         try {
             const response = await fetch('/api/admin/gyms', {
@@ -2139,6 +2347,7 @@
                     <td>${partner.gym_count || 0}</td>
                     <td>${partner.cities ? partner.cities.join(', ') : 'N/A'}</td>
                     <td>
+                        <button class="btn btn-sm btn-primary" onclick="editPartner('${partner.name}')">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deletePartner('${partner.name}')">Delete</button>
                     </td>
                 </tr>
@@ -2163,6 +2372,27 @@
             name: document.getElementById('partnerName').value,
             description: document.getElementById('partnerDescription').value
         };
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('partnerIconEmoji').value;
+        const iconFile = document.getElementById('partnerIconFile').files[0];
+
+        if (iconEmoji) {
+            partnerData.icon = iconEmoji;
+        } else if (iconFile) {
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                partnerData.icon = base64;
+            } catch (error) {
+                showToast('Error reading image file', 'error');
+                return;
+            }
+        }
 
         try {
             const response = await fetch('/api/admin/partners', {
@@ -2201,6 +2431,388 @@
             showToast('Error: ' + error.message, 'error');
         }
     }
+
+    // Icon handling for gym and partner forms
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gym icon handling
+        const gymEmojiInput = document.getElementById('gymIconEmoji');
+        const gymFileInput = document.getElementById('gymIconFile');
+        const gymPreview = document.getElementById('gymIconPreview');
+        const gymPreviewContent = document.getElementById('gymIconPreviewContent');
+
+        if (gymEmojiInput) {
+            gymEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    gymFileInput.value = '';
+                    gymPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    gymPreview.style.display = 'block';
+                } else {
+                    gymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (gymFileInput) {
+            gymFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    gymEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        gymPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        gymPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    gymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        // Partner icon handling
+        const partnerEmojiInput = document.getElementById('partnerIconEmoji');
+        const partnerFileInput = document.getElementById('partnerIconFile');
+        const partnerPreview = document.getElementById('partnerIconPreview');
+        const partnerPreviewContent = document.getElementById('partnerIconPreviewContent');
+
+        if (partnerEmojiInput) {
+            partnerEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    partnerFileInput.value = '';
+                    partnerPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    partnerPreview.style.display = 'block';
+                } else {
+                    partnerPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (partnerFileInput) {
+            partnerFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    partnerEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        partnerPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        partnerPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    partnerPreview.style.display = 'none';
+                }
+            });
+        }
+
+        // Edit Gym icon handling
+        const editGymEmojiInput = document.getElementById('editGymIconEmoji');
+        const editGymFileInput = document.getElementById('editGymIconFile');
+        const editGymPreview = document.getElementById('editGymIconPreview');
+        const editGymPreviewContent = document.getElementById('editGymIconPreviewContent');
+
+        if (editGymEmojiInput) {
+            editGymEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    if (editGymFileInput) editGymFileInput.value = '';
+                    editGymPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    editGymPreview.style.display = 'block';
+                } else {
+                    editGymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (editGymFileInput) {
+            editGymFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    if (editGymEmojiInput) editGymEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        editGymPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        editGymPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    editGymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        // Edit Partner icon handling
+        const editPartnerEmojiInput = document.getElementById('editPartnerIconEmoji');
+        const editPartnerFileInput = document.getElementById('editPartnerIconFile');
+        const editPartnerPreview = document.getElementById('editPartnerIconPreview');
+        const editPartnerPreviewContent = document.getElementById('editPartnerIconPreviewContent');
+
+        if (editPartnerEmojiInput) {
+            editPartnerEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    if (editPartnerFileInput) editPartnerFileInput.value = '';
+                    editPartnerPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    editPartnerPreview.style.display = 'block';
+                } else {
+                    editPartnerPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (editPartnerFileInput) {
+            editPartnerFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    if (editPartnerEmojiInput) editPartnerEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        editPartnerPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        editPartnerPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    editPartnerPreview.style.display = 'none';
+                }
+            });
+        }
+    });
+
+
+    // Edit Gym Functions
+    let currentEditGymData = null;
+
+    async function editGym(gymId) {
+        try {
+            // Fetch gym data
+            const response = await fetch(`/api/gyms`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const data = await response.json();
+            const gym = data.gyms.find(g => (g.id || g._id) === gymId);
+
+            if (!gym) {
+                showToast('Gym not found', 'error');
+                return;
+            }
+
+            currentEditGymData = gym;
+
+            // Load partners for dropdown
+            await loadPartnersForEditGymForm();
+
+            // Populate form
+            document.getElementById('editGymId').value = gymId;
+            document.getElementById('editGymName').value = gym.gym_name || '';
+            document.getElementById('editGymPartner').value = gym.partner_name || '';
+            document.getElementById('editGymAddress').value = gym.address || '';
+            document.getElementById('editGymCity').value = gym.city || '';
+            document.getElementById('editGymState').value = gym.state || '';
+            document.getElementById('editGymPincode').value = gym.pincode || '';
+            document.getElementById('editGymLatitude').value = gym.latitude || '';
+            document.getElementById('editGymLongitude').value = gym.longitude || '';
+            document.getElementById('editGymAmenities').value = Array.isArray(gym.amenities) ? gym.amenities.join(', ') : (gym.amenities || '');
+
+            // Handle icon
+            if (gym.icon) {
+                if (gym.icon.startsWith('data:')) {
+                    // It's a base64 image
+                    document.getElementById('editGymIconPreviewContent').innerHTML = '<img src="' + gym.icon + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                    document.getElementById('editGymIconPreview').style.display = 'block';
+                } else {
+                    // It's an emoji
+                    document.getElementById('editGymIconEmoji').value = gym.icon;
+                    document.getElementById('editGymIconPreviewContent').innerHTML = '<span style="font-size: 32px;">' + gym.icon + '</span>';
+                    document.getElementById('editGymIconPreview').style.display = 'block';
+                }
+            }
+
+            // Show modal
+            document.getElementById('editGymModal').style.display = 'flex';
+        } catch (error) {
+            console.error('Error loading gym:', error);
+            showToast('Error loading gym data', 'error');
+        }
+    }
+
+    function closeEditGymModal() {
+        document.getElementById('editGymModal').style.display = 'none';
+        document.getElementById('editGymForm').reset();
+        document.getElementById('editGymIconPreview').style.display = 'none';
+        currentEditGymData = null;
+    }
+
+    async function loadPartnersForEditGymForm() {
+        try {
+            const response = await fetch('/api/partners');
+            const data = await response.json();
+            const select = document.getElementById('editGymPartner');
+            select.innerHTML = '<option value="">Select partner...</option>' +
+                data.partners.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        } catch (error) {
+            console.error('Error loading partners:', error);
+        }
+    }
+
+    async function submitEditGym() {
+        const gymId = document.getElementById('editGymId').value;
+        const gymData = {
+            gym_name: document.getElementById('editGymName').value,
+            partner_name: document.getElementById('editGymPartner').value,
+            address: document.getElementById('editGymAddress').value,
+            city: document.getElementById('editGymCity').value,
+            state: document.getElementById('editGymState').value,
+            pincode: document.getElementById('editGymPincode').value,
+            latitude: parseFloat(document.getElementById('editGymLatitude').value),
+            longitude: parseFloat(document.getElementById('editGymLongitude').value),
+            amenities: document.getElementById('editGymAmenities').value.split(',').map(a => a.trim()).filter(a => a)
+        };
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('editGymIconEmoji').value;
+        const iconFile = document.getElementById('editGymIconFile').files[0];
+
+        if (iconEmoji) {
+            gymData.icon = iconEmoji;
+        } else if (iconFile) {
+            // Properly await file reading for ALL image formats (PNG, JPEG, GIF, etc)
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                gymData.icon = base64;
+            } catch (error) {
+                showToast('Error reading image file', 'error');
+                return;
+            }
+        } else if (currentEditGymData && currentEditGymData.icon) {
+            gymData.icon = currentEditGymData.icon;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/gyms/${gymId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gymData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update gym');
+            }
+
+            showToast('Gym updated successfully', 'success');
+            closeEditGymModal();
+            loadGyms();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Edit Partner Functions
+    let currentEditPartnerData = null;
+
+    async function editPartner(partnerName) {
+        try {
+            // Fetch partner data
+            const response = await fetch('/api/partners');
+            const data = await response.json();
+            const partner = data.partners.find(p => p.name === partnerName);
+
+            if (!partner) {
+                showToast('Partner not found', 'error');
+                return;
+            }
+
+            currentEditPartnerData = partner;
+
+            // Populate form
+            document.getElementById('editPartnerOldName').value = partnerName;
+            document.getElementById('editPartnerName').value = partner.name || '';
+            document.getElementById('editPartnerDescription').value = partner.description || '';
+
+            // Handle icon
+            if (partner.icon) {
+                if (partner.icon.startsWith('data:')) {
+                    document.getElementById('editPartnerIconPreviewContent').innerHTML = '<img src="' + partner.icon + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                    document.getElementById('editPartnerIconPreview').style.display = 'block';
+                } else {
+                    document.getElementById('editPartnerIconEmoji').value = partner.icon;
+                    document.getElementById('editPartnerIconPreviewContent').innerHTML = '<span style="font-size: 32px;">' + partner.icon + '</span>';
+                    document.getElementById('editPartnerIconPreview').style.display = 'block';
+                }
+            }
+
+            // Show modal
+            document.getElementById('editPartnerModal').style.display = 'flex';
+        } catch (error) {
+            console.error('Error loading partner:', error);
+            showToast('Error loading partner data', 'error');
+        }
+    }
+
+    function closeEditPartnerModal() {
+        document.getElementById('editPartnerModal').style.display = 'none';
+        document.getElementById('editPartnerForm').reset();
+        document.getElementById('editPartnerIconPreview').style.display = 'none';
+        currentEditPartnerData = null;
+    }
+
+    async function submitEditPartner() {
+        const oldName = document.getElementById('editPartnerOldName').value;
+        const partnerData = {
+            name: document.getElementById('editPartnerName').value,
+            description: document.getElementById('editPartnerDescription').value
+        };
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('editPartnerIconEmoji').value;
+        const iconFile = document.getElementById('editPartnerIconFile').files[0];
+
+        if (iconEmoji) {
+            partnerData.icon = iconEmoji;
+        } else if (iconFile) {
+            // Properly await file reading for ALL image formats (PNG, JPEG, GIF, etc)
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                partnerData.icon = base64;
+                console.log('Partner icon loaded, size:', base64.length);
+            } catch (error) {
+                showToast('Error reading image file: ' + error.message, 'error');
+                return;
+            }
+        } else if (currentEditPartnerData && currentEditPartnerData.icon) {
+            partnerData.icon = currentEditPartnerData.icon;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/partners/${encodeURIComponent(oldName)}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(partnerData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update partner');
+            }
+
+            showToast('Partner updated successfully', 'success');
+            closeEditPartnerModal();
+            loadPartners();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+            console.error('Partner update error:', error);
+        }
+    }
+
 </script>
 
 </body>

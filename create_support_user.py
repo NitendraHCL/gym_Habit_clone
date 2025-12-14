@@ -17,7 +17,26 @@ async def create_support_user():
         # Check if user exists
         existing = await db.users.find_one({'email': 'support@habithealth.com'})
         if existing:
-            print('[INFO] Support user already exists: support@habithealth.com')
+            # Update existing user to ensure it's active and has correct password
+            await db.users.update_one(
+                {'email': 'support@habithealth.com'},
+                {'$set': {
+                    'password_hash': hash_password('Support@2025'),
+                    'is_active': True,
+                    'role': 'facilitator',
+                    'name': 'Support Team User'
+                }}
+            )
+            print('=' * 60)
+            print('SUPPORT USER UPDATED AND ACTIVATED!')
+            print('=' * 60)
+            print(f'Email:    support@habithealth.com')
+            print(f'Password: Support@2025')
+            print(f'Role:     facilitator (Support Team)')
+            print(f'Status:   ACTIVE')
+            print()
+            print('Login URL: http://localhost:8000/admin')
+            print('=' * 60)
             return
 
         user = {

@@ -200,7 +200,8 @@ class MongoGymDatabase:
         latitude: float,
         longitude: float,
         amenities: List[str],
-        subscription_amount: int = 1499
+        subscription_amount: int = 1499,
+        icon: str = None
     ) -> int:
         """
         Create a new gym entry
@@ -239,6 +240,7 @@ class MongoGymDatabase:
             'amenities': amenities,
             'subscription_amount': subscription_amount,
             'is_active': True,
+            'icon': icon,
             'created_at': datetime.utcnow()
         }
 
@@ -247,6 +249,85 @@ class MongoGymDatabase:
         print(f"[CREATED] Gym created: {gym_name} (ID: {new_gym_id})")
 
         return new_gym_id
+
+
+    async def update_gym(
+        self,
+        gym_id: int,
+        gym_name: str,
+        partner_name: str,
+        address: str,
+        city: str,
+        state: str,
+        pincode: str,
+        latitude: float,
+        longitude: float,
+        amenities: List[str],
+        subscription_amount: int = 1499,
+        icon: str = None
+    ) -> bool:
+        """
+        Update an existing gym
+        Returns: True if updated, False if gym not found
+        """
+        update_data = {
+            'gym_name': gym_name,
+            'partner_name': partner_name,
+            'address': address,
+            'city': city,
+            'state': state,
+            'pincode': pincode,
+            'latitude': latitude,
+            'longitude': longitude,
+            'location': {
+                'type': 'Point',
+                'coordinates': [longitude, latitude]
+            },
+            'amenities': amenities,
+            'subscription_amount': subscription_amount,
+            'icon': icon,
+            'updated_at': datetime.utcnow()
+        }
+
+        result = await self.db.gyms.update_one(
+            {'gym_id': gym_id, 'is_active': True},
+            {'$set': update_data}
+        )
+
+        return result.matched_count > 0
+
+    async def update_partner(
+        self,
+        old_name: str,
+        new_name: str,
+        description: str = "",
+        icon: str = None
+    ) -> bool:
+        """
+        Update an existing partner
+        If name changes, also update all associated gyms
+        Returns: True if updated, False if partner not found
+        """
+        update_data = {
+            'name': new_name,
+            'description': description,
+            'icon': icon,
+            'updated_at': datetime.utcnow()
+        }
+
+        result = await self.db.partners.update_one(
+            {'name': old_name},
+            {'$set': update_data}
+        )
+
+        # If partner name changed, update all gyms with this partner
+        if old_name != new_name:
+            await self.db.gyms.update_many(
+                {'partner_name': old_name},
+                {'$set': {'partner_name': new_name}}
+            )
+
+        return result.matched_count > 0
 
     async def delete_gym(self, gym_id: int) -> bool:
         """
@@ -290,7 +371,7 @@ class MongoGymDatabase:
         print(f"[DELETED] Partner deleted: {partner_name} ({result.modified_count} gyms)")
         return result.modified_count
 
-    async def create_partner_entry(self, partner_name: str, description: str = "") -> bool:
+    async def create_partner_entry(self, partner_name: str, description: str = "", icon: str = None) -> bool:
         """
         Create a partner entry (for partners without gyms yet)
         Note: Partners are typically derived from gym records,
@@ -458,7 +539,23 @@ class MongoLeadManager:
             "per_page": limit
         }
 
-    async def get_lead_by_id(self, lead_id: str) -> Optional[Dict]:
+    async def assign_lead(self, lead_id: str, assigned_to_email: str, assigned_to_name: str) -> bool:
+        """
+        Assign a lead to a user (tracks who is working on the lead)
+        """
+        result = await self.db.leads.update_one(
+            {'lead_id': lead_id},
+            {
+                '$set': {
+                    'assigned_to': assigned_to_email,
+                    'assigned_to_name': assigned_to_name,
+                    'assigned_at': datetime.utcnow()
+                }
+            }
+        )
+        return result.matched_count > 0
+
+        async def get_lead_by_id(self, lead_id: str) -> Optional[Dict]:
         """
         Get a single lead by ID
         Args:

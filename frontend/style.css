@@ -257,15 +257,16 @@ body {
 /* Mobile */
 @media (max-width: 767px) {
     .hero {
-        padding: var(--space-md) 0;  /* 16px - minimal padding */
+        padding: var(--space-sm) 0;  /* 8px - ultra minimal padding */
     }
 
     .hero-title {
-        font-size: var(--font-size-2xl);  /* Smaller on mobile */
+        font-size: var(--font-size-xl);  /* Even smaller on mobile */
+        margin-bottom: var(--space-xs);
     }
 
     .hero-subtitle {
-        font-size: var(--font-size-base);
+        font-size: var(--font-size-sm);
     }
 
     /* Hide "Find Partner Gyms" title on mobile and all screens */
@@ -306,7 +307,7 @@ body {
    BRAND FILTERS - MODERN CHIPS
    ============================================================================ */
 .brands-section {
-    padding: var(--space-xl) 0;  /* Reduced from 3xl to xl */
+    padding: var(--space-sm) 0;  /* Minimal padding */
     background: var(--bg-card);
 }
 
@@ -314,7 +315,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-md);
-    margin-top: var(--space-lg);
+    margin-top: var(--space-sm);  /* Reduced spacing */
 }
 
 .brand-chip {
@@ -364,11 +365,11 @@ body {
 /* Responsive padding for sections */
 @media (max-width: 767px) {
     .brands-section {
-        padding: var(--space-md) 0;  /* Reduced padding on mobile */
+        padding: var(--space-xs) 0;  /* Absolute minimal padding on mobile */
     }
 
     .brand-chip {
-        padding: var(--space-sm) var(--space-md);
+        padding: 6px 12px;  /* Compact padding on mobile */
     }
 
     .brand-chip-icon {
@@ -572,7 +573,25 @@ body {
 
 @media (max-width: 767px) {
     .gyms-section {
-        padding: var(--space-md) 0;  /* Reduced padding on mobile */
+        padding: var(--space-sm) 0;  /* Ultra minimal padding on mobile */
+    }
+
+    .location-section {
+        padding: var(--space-md);  /* Reduced padding on mobile */
+        margin-bottom: var(--space-lg);  /* Less margin */
+    }
+
+    .location-section h3 {
+        font-size: var(--font-size-lg) !important;
+        margin-bottom: var(--space-sm) !important;
+    }
+
+    .popular-areas-grid {
+        gap: var(--space-xs);
+    }
+
+    .area-chip {
+        padding: 6px 10px;
     }
 }
 
@@ -1336,8 +1355,9 @@ body {
    ============================================================================ */
 @media (max-width: 768px) {
     .header-content {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
     }
 
     .page-title {

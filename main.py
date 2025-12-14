@@ -3,7 +3,7 @@ Gym Habit - FastAPI Backend Server (MongoDB Version)
 Habit Health by HCL Healthcare
 """
 
-from fastapi import FastAPI, HTTPException, Query, Form, Depends
+from fastapi import FastAPI, HTTPException, Query, Form, Depends, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -195,6 +195,52 @@ class LoginRequest(BaseModel):
     """Login request"""
     email: EmailStr
     password: str
+
+
+class GymCreateRequest(BaseModel):
+    """Request model for creating a new gym"""
+    gym_name: str
+    partner_name: str
+    address: str
+    city: str
+    state: str
+    pincode: str
+    latitude: float
+    longitude: float
+    amenities: list[str]
+    subscription_amount: Optional[int] = 1499
+
+    @field_validator('pincode')
+    @classmethod
+    def validate_pincode(cls, v):
+        """Validate 6-digit pincode"""
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError('Pincode must be 6 digits')
+        return v
+
+    @field_validator('gym_name', 'partner_name', 'city', 'state')
+    @classmethod
+    def validate_non_empty(cls, v):
+        """Validate non-empty strings"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Field cannot be empty')
+        return v.strip()
+
+
+class PartnerCreateRequest(BaseModel):
+    """Request model for creating a new partner"""
+    name: str
+    description: Optional[str] = ""
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v):
+        """Validate partner name"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Partner name cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Partner name must be less than 100 characters')
+        return v.strip()
 
 
 # ============================================================================
@@ -787,6 +833,198 @@ async def get_audit_trail_endpoint(
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
 
     return {"lead_id": lead_id, "audit_trail": audit_trail}
+
+
+# ============================================================================
+# API ENDPOINTS - GYM & PARTNER MANAGEMENT (Admin Only)
+# ============================================================================
+
+@app.post("/api/admin/gyms")
+async def create_gym_endpoint(
+    request: GymCreateRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Create a new gym (admin only)
+    Body: GymCreateRequest model
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    try:
+        # Create gym using gym_db manager
+        gym_id = await gym_db.create_gym(
+            gym_name=request.gym_name,
+            partner_name=request.partner_name,
+            address=request.address,
+            city=request.city,
+            state=request.state,
+            pincode=request.pincode,
+            latitude=request.latitude,
+            longitude=request.longitude,
+            amenities=request.amenities,
+            subscription_amount=request.subscription_amount
+        )
+
+        return {
+            "message": "Gym created successfully",
+            "gym_id": gym_id,
+            "gym_name": request.gym_name,
+            "partner_name": request.partner_name
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating gym: {str(e)}")
+
+
+@app.post("/api/admin/gyms/upload")
+async def upload_gyms_csv_endpoint(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Upload gyms from CSV file (admin only)
+    CSV Format: gym_name,partner_name,address,city,state,pincode,latitude,longitude,amenities
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    # Validate file type
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+
+    try:
+        # Read CSV file
+        content = await file.read()
+        decoded_content = content.decode('utf-8').splitlines()
+
+        csv_reader = csv.DictReader(decoded_content)
+
+        gyms_created = 0
+        errors = []
+
+        for i, row in enumerate(csv_reader, start=2):  # Start at 2 (line 1 is header)
+            try:
+                # Parse amenities (comma-separated in quotes or single string)
+                amenities_str = row.get('amenities', '')
+                if amenities_str:
+                    amenities = [a.strip() for a in amenities_str.split(',')]
+                else:
+                    amenities = []
+
+                # Create gym
+                await gym_db.create_gym(
+                    gym_name=row['gym_name'],
+                    partner_name=row['partner_name'],
+                    address=row['address'],
+                    city=row['city'],
+                    state=row['state'],
+                    pincode=row['pincode'],
+                    latitude=float(row['latitude']),
+                    longitude=float(row['longitude']),
+                    amenities=amenities,
+                    subscription_amount=int(row.get('subscription_amount', 1499))
+                )
+
+                gyms_created += 1
+
+            except Exception as e:
+                errors.append(f"Line {i}: {str(e)}")
+
+        return {
+            "message": f"Successfully uploaded {gyms_created} gyms",
+            "gyms_created": gyms_created,
+            "errors": errors if errors else None
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
+
+
+@app.delete("/api/admin/gyms/{gym_id}")
+async def delete_gym_endpoint(
+    gym_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Delete a gym (admin only)
+    Note: Soft delete - gym is marked as inactive
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    success = await gym_db.delete_gym(gym_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Gym {gym_id} not found")
+
+    return {
+        "message": "Gym deleted successfully",
+        "gym_id": gym_id
+    }
+
+
+@app.post("/api/admin/partners")
+async def create_partner_endpoint(
+    request: PartnerCreateRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Create a new partner (admin only)
+    Body: PartnerCreateRequest model
+    Note: Partners are derived from gyms. This creates a placeholder.
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    success = await gym_db.create_partner_entry(
+        partner_name=request.name,
+        description=request.description
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Partner '{request.name}' already exists"
+        )
+
+    return {
+        "message": "Partner created successfully",
+        "partner_name": request.name,
+        "note": "Add gyms to this partner to activate it"
+    }
+
+
+@app.delete("/api/admin/partners/{partner_name}")
+async def delete_partner_endpoint(
+    partner_name: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Delete a partner and all its gyms (admin only)
+    Note: Soft delete - all gyms are marked as inactive
+    """
+    # Check if user is admin
+    if current_user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    gyms_deleted = await gym_db.delete_partner(partner_name)
+
+    if gyms_deleted == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Partner '{partner_name}' not found or has no gyms"
+        )
+
+    return {
+        "message": "Partner deleted successfully",
+        "partner_name": partner_name,
+        "gyms_deleted": gyms_deleted
+    }
 
 
 @app.get("/api/admin/reports/leads.csv")

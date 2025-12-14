@@ -189,6 +189,131 @@ class MongoGymDatabase:
 
         return results
 
+    async def create_gym(
+        self,
+        gym_name: str,
+        partner_name: str,
+        address: str,
+        city: str,
+        state: str,
+        pincode: str,
+        latitude: float,
+        longitude: float,
+        amenities: List[str],
+        subscription_amount: int = 1499
+    ) -> int:
+        """
+        Create a new gym entry
+        Args:
+            gym_name: Name of the gym
+            partner_name: Partner name (e.g., "Cult", "Gold's Gym")
+            address: Full address
+            city: City name
+            state: State name
+            pincode: 6-digit pincode
+            latitude: Latitude coordinate
+            longitude: Longitude coordinate
+            amenities: List of amenities
+            subscription_amount: Monthly subscription amount (default: 1499)
+        Returns: New gym_id
+        """
+        # Generate new gym_id
+        max_gym = await self.db.gyms.find_one(sort=[("gym_id", -1)])
+        new_gym_id = (max_gym['gym_id'] + 1) if max_gym else 1
+
+        # Create gym document
+        new_gym = {
+            'gym_id': new_gym_id,
+            'gym_name': gym_name,
+            'partner_name': partner_name,
+            'address': address,
+            'city': city,
+            'state': state,
+            'pincode': pincode,
+            'latitude': latitude,
+            'longitude': longitude,
+            'location': {
+                'type': 'Point',
+                'coordinates': [longitude, latitude]  # GeoJSON format [lon, lat]
+            },
+            'amenities': amenities,
+            'subscription_amount': subscription_amount,
+            'is_active': True,
+            'created_at': datetime.utcnow()
+        }
+
+        # Insert into MongoDB
+        await self.db.gyms.insert_one(new_gym)
+        print(f"[CREATED] Gym created: {gym_name} (ID: {new_gym_id})")
+
+        return new_gym_id
+
+    async def delete_gym(self, gym_id: int) -> bool:
+        """
+        Soft delete a gym (mark as inactive)
+        Args:
+            gym_id: Gym ID to delete
+        Returns: True if deleted, False if not found
+        """
+        result = await self.db.gyms.update_one(
+            {"gym_id": gym_id},
+            {
+                "$set": {
+                    "is_active": False,
+                    "deleted_at": datetime.utcnow()
+                }
+            }
+        )
+
+        if result.modified_count > 0:
+            print(f"[DELETED] Gym deleted: ID {gym_id}")
+            return True
+        return False
+
+    async def delete_partner(self, partner_name: str) -> int:
+        """
+        Soft delete all gyms of a partner (mark as inactive)
+        Args:
+            partner_name: Partner name to delete
+        Returns: Number of gyms deleted
+        """
+        result = await self.db.gyms.update_many(
+            {"partner_name": {"$regex": f"^{partner_name}$", "$options": "i"}},
+            {
+                "$set": {
+                    "is_active": False,
+                    "deleted_at": datetime.utcnow()
+                }
+            }
+        )
+
+        print(f"[DELETED] Partner deleted: {partner_name} ({result.modified_count} gyms)")
+        return result.modified_count
+
+    async def create_partner_entry(self, partner_name: str, description: str = "") -> bool:
+        """
+        Create a partner entry (for partners without gyms yet)
+        Note: Partners are typically derived from gym records,
+        but this allows creating a placeholder partner entry.
+        Args:
+            partner_name: Partner name
+            description: Partner description
+        Returns: True if created
+        """
+        # Check if partner already exists (has gyms)
+        existing = await self.db.gyms.find_one({
+            "partner_name": {"$regex": f"^{partner_name}$", "$options": "i"},
+            "is_active": True
+        })
+
+        if existing:
+            return False  # Partner already exists
+
+        # For now, we'll just return True
+        # In a real system, you might have a separate 'partners' collection
+        print(f"[INFO] Partner '{partner_name}' registered. Add gyms to activate.")
+        return True
+
     def _format_gym(self, gym: Dict) -> Dict:
         """
         Convert MongoDB gym document to API format

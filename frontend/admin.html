@@ -2048,6 +2048,7 @@
                 <td>
                     ${!user.is_active ? `<button class="btn btn-sm btn-success" onclick="activateUser('${user.user_id}')">Activate</button>` : ''}
                     ${user.is_active ? `<button class="btn btn-sm btn-danger" onclick="deactivateUser('${user.user_id}')">Deactivate</button>` : ''}
+            ${!user.is_active ? `<button class="btn btn-sm btn-success" onclick="activateUser('${user.user_id}')">Activate</button>` : ''}
                 </td>
             </tr>
         `).join('');
@@ -2083,8 +2084,27 @@
         }
     }
 
+
+    async function activateUser(userId) {
+        if (!confirm('Are you sure you want to activate this user?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/activate`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to activate user');
+
+            showToast('User activated successfully', 'success');
+            loadUsers();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
     async function deactivateUser(userId) {
-        if (!confirm('Are you sure you want to deactivate this user?')) return;
+        if (!confirm('Are you sure you want to deactivate this user? They will not be able to login.')) return;
 
         try {
             const response = await fetch(`/api/admin/users/${userId}`, {

@@ -330,9 +330,9 @@ class MongoGymDatabase:
         icon: str = None
     ) -> bool:
         """
-        Update an existing partner
+        Update an existing partner (or create if doesn't exist in partners collection)
         If name changes, also update all associated gyms
-        Returns: True if updated, False if partner not found
+        Returns: True if updated
         """
         update_data = {
             'name': new_name,
@@ -341,9 +341,15 @@ class MongoGymDatabase:
             'updated_at': datetime.utcnow()
         }
 
+        # Use upsert to create if doesn't exist
+        # This handles partners that exist in gyms but not in partners collection
         result = await self.db.partners.update_one(
             {'name': old_name},
-            {'$set': update_data}
+            {
+                '$set': update_data,
+                '$setOnInsert': {'created_at': datetime.utcnow()}
+            },
+            upsert=True  # Insert if doesn't exist
         )
 
         # If partner name changed, update all gyms with this partner
@@ -353,7 +359,8 @@ class MongoGymDatabase:
                 {'$set': {'partner_name': new_name}}
             )
 
-        return result.matched_count > 0
+        print(f"[UPDATED] Partner '{old_name}' -> '{new_name}' (upserted={result.upserted_id is not None})")
+        return True  # Always return True since upsert guarantees success
 
     async def delete_gym(self, gym_id: int) -> bool:
         """

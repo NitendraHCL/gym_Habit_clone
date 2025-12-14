@@ -1451,10 +1451,6 @@ async def deactivate_user(
     if current_user.get('role') != 'admin':
         raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
 
-    # Prevent self-deactivation
-    if user_id == current_user.get('user_id'):
-        raise HTTPException(status_code=400, detail="Cannot deactivate your own account")
-
     # Deactivate user
     from bson import ObjectId
     try:

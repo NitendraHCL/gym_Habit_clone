@@ -595,7 +595,7 @@ class MongoLeadManager:
         )
         return result.matched_count > 0
 
-        async def get_lead_by_id(self, lead_id: str) -> Optional[Dict]:
+    async def get_lead_by_id(self, lead_id: str) -> Optional[Dict]:
         """
         Get a single lead by ID
         Args:

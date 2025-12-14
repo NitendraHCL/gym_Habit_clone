@@ -7,8 +7,9 @@ from fastapi import FastAPI, HTTPException, Query, Form, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
+from contextlib import asynccontextmanager
 import uvicorn
 import os
 import requests
@@ -21,11 +22,37 @@ from mongodb import MongoDB
 from auth import create_access_token, get_current_user, verify_password
 import config
 
-# Initialize FastAPI app
+# Initialize database managers
+gym_db = MongoGymDatabase()
+lead_manager = MongoLeadManager()
+
+
+# ============================================================================
+# LIFESPAN EVENTS
+# ============================================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events"""
+    # Startup
+    await MongoDB.connect_db()
+    await gym_db.initialize()
+    await lead_manager.initialize()
+    print("[OK] MongoDB connection initialized")
+
+    yield
+
+    # Shutdown
+    await MongoDB.close_db()
+    print("[OK] MongoDB connection closed")
+
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="Gym Habit API",
     description="Partner Gym Finder for Habit Health",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware
@@ -37,32 +64,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize database managers (will be initialized on startup)
-gym_db = MongoGymDatabase()
-lead_manager = MongoLeadManager()
-
 # Mount static files
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
-
-
-# ============================================================================
-# STARTUP/SHUTDOWN EVENTS
-# ============================================================================
-
-@app.on_event("startup")
-async def startup_db_client():
-    """Connect to MongoDB on startup"""
-    await MongoDB.connect_db()
-    await gym_db.initialize()
-    await lead_manager.initialize()
-    print("[OK] MongoDB connection initialized")
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    """Close MongoDB connection on shutdown"""
-    await MongoDB.close_db()
-    print("[OK] MongoDB connection closed")
 
 
 # ============================================================================
@@ -158,7 +161,8 @@ class SubscriptionRequest(BaseModel):
     user_longitude: Optional[float] = None
     user_city: Optional[str] = None
 
-    @validator('phone')
+    @field_validator('phone')
+    @classmethod
     def validate_phone(cls, v):
         """Validate 10-digit Indian phone number"""
         if not v.isdigit() or len(v) != 10:
@@ -167,7 +171,8 @@ class SubscriptionRequest(BaseModel):
             raise ValueError('Phone must start with 6, 7, 8, or 9')
         return v
 
-    @validator('full_name')
+    @field_validator('full_name')
+    @classmethod
     def validate_name(cls, v):
         """Validate name length"""
         if len(v) < 3:
@@ -176,7 +181,8 @@ class SubscriptionRequest(BaseModel):
             raise ValueError('Name must be less than 100 characters')
         return v.strip()
 
-    @validator('preferred_plan')
+    @field_validator('preferred_plan')
+    @classmethod
     def validate_plan(cls, v):
         """Validate plan selection"""
         valid_plans = ['1-month', '3-month', '12-month']

@@ -844,6 +844,7 @@ async def export_leads_csv(
         "Email",
         "Phone",
         "City",
+        "State",
         "Gym Name",
         "Partner",
         "Preferred Plan",
@@ -852,7 +853,12 @@ async def export_leads_csv(
         "Payment Link",
         "Billing Address",
         "Message",
-        "Comments Count"
+        "Comments Count",
+        "Total Audit Entries",
+        "Latest Status Update",
+        "Latest Payment Update",
+        "Latest Plan Change",
+        "All Comments"
     ])
 
     # Write data rows
@@ -864,6 +870,58 @@ async def export_leads_csv(
         user_location = lead.get('user_location', {})
         payment = lead.get('payment', {})
         comments = lead.get('comments', [])
+        audit_log = lead.get('audit_log', [])
+
+        # Extract latest audit entries
+        latest_status_update = ""
+        latest_payment_update = ""
+        latest_plan_change = ""
+
+        # Process audit log (most recent first)
+        for entry in reversed(audit_log):
+            action = entry.get('action', '')
+            timestamp = entry.get('timestamp', '')
+            user = entry.get('user', '')
+
+            if isinstance(timestamp, datetime):
+                timestamp = timestamp.strftime('%Y-%m-%d %H:%M')
+
+            if action == 'status_change' and not latest_status_update:
+                old_val = entry.get('old_value', '')
+                new_val = entry.get('new_value', '')
+                reason = entry.get('reason', '')
+                latest_status_update = f"{timestamp} | {user} | {old_val} → {new_val}"
+                if reason:
+                    latest_status_update += f" | Reason: {reason}"
+
+            elif action == 'payment_update' and not latest_payment_update:
+                old_val = entry.get('old_value', '')
+                new_val = entry.get('new_value', '')
+                details = entry.get('details', {})
+                latest_payment_update = f"{timestamp} | {user} | {old_val} → {new_val}"
+                if details:
+                    if 'amount' in details:
+                        latest_payment_update += f" | Amount: ₹{details['amount']}"
+                    if 'payment_link' in details:
+                        latest_payment_update += f" | Link: {details['payment_link']}"
+
+            elif action == 'plan_change' and not latest_plan_change:
+                old_val = entry.get('old_value', '')
+                new_val = entry.get('new_value', '')
+                reason = entry.get('reason', '')
+                latest_plan_change = f"{timestamp} | {user} | {old_val} → {new_val}"
+                if reason:
+                    latest_plan_change += f" | Reason: {reason}"
+
+        # Format all comments
+        all_comments = ""
+        for comment in comments:
+            comment_time = comment.get('timestamp', '')
+            if isinstance(comment_time, datetime):
+                comment_time = comment_time.strftime('%Y-%m-%d %H:%M')
+            comment_user = comment.get('added_by', '')
+            comment_text = comment.get('comment', '')
+            all_comments += f"[{comment_time} - {comment_user}] {comment_text}; "
 
         writer.writerow([
             lead.get('lead_id', ''),
@@ -873,6 +931,7 @@ async def export_leads_csv(
             lead.get('email', ''),
             lead.get('phone', ''),
             user_location.get('city', ''),
+            user_location.get('state', ''),
             lead.get('gym_name', ''),
             lead.get('partner_name', ''),
             lead.get('preferred_plan', ''),
@@ -881,7 +940,12 @@ async def export_leads_csv(
             payment.get('payment_link', ''),
             lead.get('billing_address', ''),
             lead.get('message', ''),
-            len(comments)
+            len(comments),
+            len(audit_log),
+            latest_status_update,
+            latest_payment_update,
+            latest_plan_change,
+            all_comments.strip()
         ])
 
     # Get CSV content

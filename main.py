@@ -1306,6 +1306,15 @@ async def update_partner_endpoint(
     """
     Update an existing partner (admin only)
     """
+    print(f"\n=== UPDATE PARTNER ENDPOINT ===")
+    print(f"Partner Name (from URL): {partner_name}")
+    print(f"New Name: {request.name}")
+    print(f"Description: {request.description}")
+    print(f"Has Icon: {request.icon is not None}")
+    if request.icon:
+        print(f"Icon length: {len(request.icon)}")
+    print(f"User: {current_user.get('email')}")
+
     if current_user.get('role') != 'admin':
         raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
 
@@ -1317,11 +1326,20 @@ async def update_partner_endpoint(
             icon=request.icon
         )
 
-        if not success:
-            raise HTTPException(status_code=404, detail="Partner not found")
+        print(f"Update result: {success}")
 
+        if not success:
+            print(f"[ERROR] Partner update failed - partner not found: {partner_name}")
+            raise HTTPException(status_code=404, detail=f"Partner '{partner_name}' not found")
+
+        print(f"[SUCCESS] Partner updated: {partner_name} -> {request.name}")
         return {"message": "Partner updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[ERROR] Partner update exception: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/admin/users")
@@ -1450,6 +1468,15 @@ async def deactivate_user(
     # Check if user is admin
     if current_user.get('role') != 'admin':
         raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
+
+    # Check if target user is admin - only facilitators can be deactivated
+    try:
+        from bson import ObjectId
+        target_user = await MongoDB.db.users.find_one({"_id": ObjectId(user_id)})
+        if target_user and target_user.get('role') == 'admin':
+            raise HTTPException(status_code=403, detail="Cannot deactivate admin users")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     # Deactivate user
     from bson import ObjectId

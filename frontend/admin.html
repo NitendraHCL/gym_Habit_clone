@@ -2784,6 +2784,10 @@
             description: document.getElementById('editPartnerDescription').value
         };
 
+        console.log('=== EDIT PARTNER DEBUG ===');
+        console.log('Old Name:', oldName);
+        console.log('New Name:', partnerData.name);
+
         // Add icon if provided
         const iconEmoji = document.getElementById('editPartnerIconEmoji').value;
         const iconFile = document.getElementById('editPartnerIconFile').files[0];
@@ -2810,6 +2814,9 @@
         }
 
         try {
+            console.log('Request URL:', `/api/admin/partners/${encodeURIComponent(oldName)}`);
+            console.log('Request Body:', JSON.stringify(partnerData, null, 2));
+
             const response = await fetch(`/api/admin/partners/${encodeURIComponent(oldName)}`, {
                 method: 'PUT',
                 headers: {
@@ -2818,6 +2825,9 @@
                 },
                 body: JSON.stringify(partnerData)
             });
+
+            console.log('Response Status:', response.status);
+            console.log('Response OK:', response.ok);
 
             if (!response.ok) {
                 const error = await response.json();

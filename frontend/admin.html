@@ -297,13 +297,13 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
             overflow-y: auto;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
         .modal.active {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
         }
 
         .modal-content {
@@ -679,6 +679,129 @@
     </div>
 </div>
 
+<!-- Update Status Modal -->
+<div id="updateStatusModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Lead Status</h2>
+            <button class="close-btn" onclick="closeUpdateStatusModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="updateStatusForm">
+                <div class="form-group">
+                    <label>New Status *</label>
+                    <select id="newStatus" required>
+                        <option value="">Select status...</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="interested">Interested</option>
+                        <option value="not_interested">Not Interested</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason (optional)</label>
+                    <textarea id="statusReason" rows="3" placeholder="Why is the status being changed?"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeUpdateStatusModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitStatusUpdate()">Update Status</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Comment Modal -->
+<div id="addCommentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Internal Comment</h2>
+            <button class="close-btn" onclick="closeAddCommentModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addCommentForm">
+                <div class="form-group">
+                    <label>Comment *</label>
+                    <textarea id="commentText" rows="4" required placeholder="Enter your comment here..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeAddCommentModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitComment()">Add Comment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Update Payment Modal -->
+<div id="updatePaymentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Payment Details</h2>
+            <button class="close-btn" onclick="closeUpdatePaymentModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="updatePaymentForm">
+                <div class="form-group">
+                    <label>Payment Status *</label>
+                    <select id="paymentStatus" required>
+                        <option value="">Select status...</option>
+                        <option value="pending">Pending</option>
+                        <option value="link_shared">Link Shared</option>
+                        <option value="paid">Paid</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₹)</label>
+                    <input type="number" id="paymentAmount" placeholder="e.g., 14999">
+                </div>
+                <div class="form-group">
+                    <label>Payment Link</label>
+                    <input type="url" id="paymentLink" placeholder="https://...">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeUpdatePaymentModal()">Cancel</button>
+            <button class="btn btn-success" onclick="submitPaymentUpdate()">Update Payment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Update Plan Modal -->
+<div id="updatePlanModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Change Membership Plan</h2>
+            <button class="close-btn" onclick="closeUpdatePlanModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="updatePlanForm">
+                <div class="form-group">
+                    <label>New Plan *</label>
+                    <select id="newPlan" required>
+                        <option value="">Select plan...</option>
+                        <option value="Basic - 1 Month">Basic - 1 Month</option>
+                        <option value="Premium - 6 Months">Premium - 6 Months</option>
+                        <option value="Elite - 12 Months">Elite - 12 Months</option>
+                        <option value="Ultimate - 24 Months">Ultimate - 24 Months</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason (optional)</label>
+                    <textarea id="planReason" rows="3" placeholder="Why is the plan being changed?"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeUpdatePlanModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitPlanUpdate()">Update Plan</button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
@@ -963,12 +1086,25 @@
         currentLeadId = null;
     }
 
-    // Update Status
-    async function updateStatus() {
-        const status = prompt('Enter new status:\n- new\n- contacted\n- interested\n- not_interested\n- closed');
-        if (!status) return;
+    // Update Status - Open Modal
+    function updateStatus() {
+        document.getElementById('updateStatusModal').style.display = 'flex';
+        document.getElementById('newStatus').value = '';
+        document.getElementById('statusReason').value = '';
+    }
 
-        const reason = prompt('Reason (optional):');
+    function closeUpdateStatusModal() {
+        document.getElementById('updateStatusModal').style.display = 'none';
+    }
+
+    async function submitStatusUpdate() {
+        const status = document.getElementById('newStatus').value;
+        const reason = document.getElementById('statusReason').value;
+
+        if (!status) {
+            showToast('Please select a status', 'error');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('status', status);
@@ -984,6 +1120,7 @@
             if (!response.ok) throw new Error('Failed to update status');
 
             showToast('Status updated successfully', 'success');
+            closeUpdateStatusModal();
             viewLead(currentLeadId);
             loadLeads(currentPage);
         } catch (error) {
@@ -991,10 +1128,23 @@
         }
     }
 
-    // Add Comment
-    async function addComment() {
-        const comment = prompt('Enter comment:');
-        if (!comment) return;
+    // Add Comment - Open Modal
+    function addComment() {
+        document.getElementById('addCommentModal').style.display = 'flex';
+        document.getElementById('commentText').value = '';
+    }
+
+    function closeAddCommentModal() {
+        document.getElementById('addCommentModal').style.display = 'none';
+    }
+
+    async function submitComment() {
+        const comment = document.getElementById('commentText').value.trim();
+
+        if (!comment) {
+            showToast('Please enter a comment', 'error');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('comment', comment);
@@ -1009,19 +1159,34 @@
             if (!response.ok) throw new Error('Failed to add comment');
 
             showToast('Comment added successfully', 'success');
+            closeAddCommentModal();
             viewLead(currentLeadId);
         } catch (error) {
             showToast('Error: ' + error.message, 'error');
         }
     }
 
-    // Update Payment
-    async function updatePayment() {
-        const status = prompt('Payment status:\n- pending\n- link_shared\n- paid\n- failed');
-        if (!status) return;
+    // Update Payment - Open Modal
+    function updatePayment() {
+        document.getElementById('updatePaymentModal').style.display = 'flex';
+        document.getElementById('paymentStatus').value = '';
+        document.getElementById('paymentAmount').value = '';
+        document.getElementById('paymentLink').value = '';
+    }
 
-        const amount = prompt('Amount (optional):');
-        const link = prompt('Payment link (optional):');
+    function closeUpdatePaymentModal() {
+        document.getElementById('updatePaymentModal').style.display = 'none';
+    }
+
+    async function submitPaymentUpdate() {
+        const status = document.getElementById('paymentStatus').value;
+        const amount = document.getElementById('paymentAmount').value;
+        const link = document.getElementById('paymentLink').value;
+
+        if (!status) {
+            showToast('Please select a payment status', 'error');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('payment_status', status);
@@ -1038,6 +1203,7 @@
             if (!response.ok) throw new Error('Failed to update payment');
 
             showToast('Payment updated successfully', 'success');
+            closeUpdatePaymentModal();
             viewLead(currentLeadId);
             loadLeads(currentPage);
         } catch (error) {
@@ -1045,12 +1211,25 @@
         }
     }
 
-    // Update Plan
-    async function updatePlan() {
-        const plan = prompt('New plan:\n- 1 Month\n- 3 Months\n- 6 Months\n- 12 Months');
-        if (!plan) return;
+    // Update Plan - Open Modal
+    function updatePlan() {
+        document.getElementById('updatePlanModal').style.display = 'flex';
+        document.getElementById('newPlan').value = '';
+        document.getElementById('planReason').value = '';
+    }
 
-        const reason = prompt('Reason (optional):');
+    function closeUpdatePlanModal() {
+        document.getElementById('updatePlanModal').style.display = 'none';
+    }
+
+    async function submitPlanUpdate() {
+        const plan = document.getElementById('newPlan').value;
+        const reason = document.getElementById('planReason').value;
+
+        if (!plan) {
+            showToast('Please select a plan', 'error');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('new_plan', plan);
@@ -1066,7 +1245,9 @@
             if (!response.ok) throw new Error('Failed to update plan');
 
             showToast('Plan updated successfully', 'success');
+            closeUpdatePlanModal();
             viewLead(currentLeadId);
+            loadLeads(currentPage);
         } catch (error) {
             showToast('Error: ' + error.message, 'error');
         }
@@ -1234,6 +1415,13 @@
 
         if (tab === 'users') {
             loadUsers();
+        }
+    }
+
+    // Close modals on outside click
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
         }
     }
 

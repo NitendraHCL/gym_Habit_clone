@@ -24,9 +24,24 @@ class MongoGymDatabase:
 
     async def get_all_partners(self) -> List[Dict[str, any]]:
         """
-        Get unique list of partners with gym counts
-        Returns: [{"name": "Cult", "count": 10}, ...]
+        Get unique list of partners from partners collection merged with gym-derived partners
+        Returns: [{"name": "Cult", "count": 10, "description": "...", "icon": "..."}, ...]
         """
+        # Get partners from partners collection
+        partners_cursor = self.db.partners.find({})
+        partners_docs = await partners_cursor.to_list(None)
+
+        # Create a dict with partner info from partners collection
+        partners_dict = {}
+        for p in partners_docs:
+            partners_dict[p['name']] = {
+                'name': p['name'],
+                'description': p.get('description', ''),
+                'icon': p.get('icon'),
+                'count': 0  # Will be updated from gyms
+            }
+
+        # Get gym counts by partner
         pipeline = [
             {"$match": {"is_active": True}},
             {
@@ -34,19 +49,30 @@ class MongoGymDatabase:
                     "_id": "$partner_name",
                     "count": {"$sum": 1}
                 }
-            },
-            {"$sort": {"_id": 1}},
-            {
-                "$project": {
-                    "_id": 0,
-                    "name": "$_id",
-                    "count": 1
-                }
             }
         ]
 
-        partners = await self.db.gyms.aggregate(pipeline).to_list(None)
-        return partners
+        gym_counts = await self.db.gyms.aggregate(pipeline).to_list(None)
+
+        # Merge gym counts with partner info
+        for gc in gym_counts:
+            partner_name = gc['_id']
+            if partner_name in partners_dict:
+                partners_dict[partner_name]['count'] = gc['count']
+            else:
+                # Partner exists in gyms but not in partners collection
+                partners_dict[partner_name] = {
+                    'name': partner_name,
+                    'description': '',
+                    'icon': None,
+                    'count': gc['count']
+                }
+
+        # Convert to list and sort
+        partners_list = list(partners_dict.values())
+        partners_list.sort(key=lambda x: x['name'])
+
+        return partners_list
 
     async def get_gyms_by_partner(self, partner: str) -> List[Dict]:
         """
@@ -353,12 +379,13 @@ class MongoGymDatabase:
 
     async def delete_partner(self, partner_name: str) -> int:
         """
-        Soft delete all gyms of a partner (mark as inactive)
+        Delete partner from partners collection and soft delete all gyms
         Args:
             partner_name: Partner name to delete
         Returns: Number of gyms deleted
         """
-        result = await self.db.gyms.update_many(
+        # Soft delete all gyms of this partner
+        gym_result = await self.db.gyms.update_many(
             {"partner_name": {"$regex": f"^{partner_name}$", "$options": "i"}},
             {
                 "$set": {
@@ -368,31 +395,37 @@ class MongoGymDatabase:
             }
         )
 
-        print(f"[DELETED] Partner deleted: {partner_name} ({result.modified_count} gyms)")
-        return result.modified_count
+        # Delete partner from partners collection
+        await self.db.partners.delete_one({"name": partner_name})
+
+        print(f"[DELETED] Partner deleted: {partner_name} ({gym_result.modified_count} gyms)")
+        return gym_result.modified_count
 
     async def create_partner_entry(self, partner_name: str, description: str = "", icon: str = None) -> bool:
         """
-        Create a partner entry (for partners without gyms yet)
-        Note: Partners are typically derived from gym records,
-        but this allows creating a placeholder partner entry.
+        Create a partner entry in partners collection
         Args:
             partner_name: Partner name
             description: Partner description
-        Returns: True if created
+            icon: Partner icon (emoji or base64 image)
+        Returns: True if created, False if already exists
         """
-        # Check if partner already exists (has gyms)
-        existing = await self.db.gyms.find_one({
-            "partner_name": {"$regex": f"^{partner_name}$", "$options": "i"},
-            "is_active": True
-        })
+        # Check if partner already exists in partners collection
+        existing = await self.db.partners.find_one({"name": partner_name})
 
         if existing:
             return False  # Partner already exists
 
-        # For now, we'll just return True
-        # In a real system, you might have a separate 'partners' collection
-        print(f"[INFO] Partner '{partner_name}' registered. Add gyms to activate.")
+        # Create partner document
+        partner_doc = {
+            'name': partner_name,
+            'description': description,
+            'icon': icon,
+            'created_at': datetime.utcnow()
+        }
+
+        await self.db.partners.insert_one(partner_doc)
+        print(f"[INFO] Partner '{partner_name}' created in partners collection")
         return True
 
     def _format_gym(self, gym: Dict) -> Dict:

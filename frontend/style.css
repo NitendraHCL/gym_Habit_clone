@@ -19,11 +19,13 @@
     /* Solid Colors - Habit Health Palette */
     --primary: #0056B3;
     --primary-dark: #003D82;
+    --brand-blue: #0056B3;
     --secondary: #FF8C00;
     --accent-orange: #FFB84D;
     --accent-blue: #3380CC;
     --accent-purple: #FFB84D;
     --accent-light: #FFB84D;
+    --bg-blue-subtle: rgba(0, 86, 179, 0.08);
 
     /* Backgrounds */
     --bg-base: #F8F9FE;
@@ -514,11 +516,12 @@ body {
 }
 
 .location-section {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    border-radius: var(--radius-xl);
-    padding: var(--space-xl);
+    background: linear-gradient(135deg, #0056B3 0%, #1e40af 100%);
+    border-radius: var(--radius-md);
+    padding: var(--space-2xl);
     margin-bottom: var(--space-3xl);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .location-content {

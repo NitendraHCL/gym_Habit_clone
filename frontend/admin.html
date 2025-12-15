@@ -2048,7 +2048,6 @@
                 <td>
                     ${!user.is_active ? `<button class="btn btn-sm btn-success" onclick="activateUser('${user.user_id}')">Activate</button>` : ''}
                     ${user.is_active ? `<button class="btn btn-sm btn-danger" onclick="deactivateUser('${user.user_id}')">Deactivate</button>` : ''}
-            ${!user.is_active ? `<button class="btn btn-sm btn-success" onclick="activateUser('${user.user_id}')">Activate</button>` : ''}
                 </td>
             </tr>
         `).join('');

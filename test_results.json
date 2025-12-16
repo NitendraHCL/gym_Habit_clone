@@ -1,0 +1,27 @@
+[
+  {
+    "test": "Admin panel loads correctly",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "Admin login successful",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "Add Gym modal opens",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "Custom plans section hidden by default",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "Test execution",
+    "status": "FAIL",
+    "details": "Locator.is_visible: Error: strict mode violation: locator(\"text=AutoCalc Test Gym\") resolved to 2 elements:\n    1) <td>AutoCalc Test Gym</td> aka get_by_role(\"cell\", name=\"AutoCalc Test Gym\").first\n    2) <td>AutoCalc Test Gym</td> aka get_by_role(\"cell\", name=\"AutoCalc Test Gym\").nth(1)\n\nCall log:\n    - checking visibility of locator(\"text=AutoCalc Test Gym\")\n"
+  }
+]

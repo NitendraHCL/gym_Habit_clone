@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find Partner Gyms - Habit Health</title>
     <meta name="description" content="Discover partner gyms near you with Habit Health by HCL Healthcare">
-    <link rel="stylesheet" href="/static/style.css?v=9">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=11">
 </head>
 <body>
     <!-- Header -->
@@ -298,17 +301,25 @@
             }
 
             // Add "All" filter
-            const allChip = `<div class="brand-chip active" onclick="toggleFilter('All')">
+            const allChip = `<div class="brand-chip active" data-partner="All" onclick="toggleFilter('All')">
                 <span class="brand-chip-icon">🏋️</span>
                 <span class="brand-chip-text">All Gyms</span>
             </div>`;
 
-            const partnerChips = partners.map(partner => `
-                <div class="brand-chip" onclick="toggleFilter('${partner.name}')">
-                    <span class="brand-chip-icon">${getPartnerIcon(partner.name)}</span>
-                    <span class="brand-chip-text">${partner.name}</span>
-                </div>
-            `).join('');
+            const partnerChips = partners.map(partner => {
+                const iconDisplay = partner.icon ?
+                    (partner.icon.startsWith('data:') ?
+                        `<img src="${partner.icon}" style="width: 24px; height: 24px; object-fit: contain; border-radius: 4px;" alt="${partner.name}">` :
+                        partner.icon) :
+                    getPartnerIcon(partner.name);
+
+                return `
+                    <div class="brand-chip" data-partner="${partner.name}" onclick="toggleFilter('${partner.name}')">
+                        <span class="brand-chip-icon">${iconDisplay}</span>
+                        <span class="brand-chip-text">${partner.name}</span>
+                    </div>
+                `;
+            }).join('');
 
             brandsGrid.innerHTML = allChip + partnerChips;
         }
@@ -330,12 +341,19 @@
                 const location = addressParts.slice(-2).join(' '); // Get city area
                 const amenitiesList = gym.amenities.split(',').slice(0, 3);
 
+                // Determine icon to display - gym icon first, then partner icon, then default
+                const iconDisplay = gym.icon ?
+                    (gym.icon.startsWith('data:') ?
+                        `<img src="${gym.icon}" style="width: 36px; height: 36px; object-fit: contain; border-radius: 6px;" alt="${gym.gym_name}">` :
+                        gym.icon) :
+                    getPartnerIcon(gym.partner_name);
+
                 return `
                     <div class="gym-card" onclick="showGymModal(${gym.id})" data-partner="${gym.partner_name}" style="background: linear-gradient(135deg, ${getPartnerColor(gym.partner_name)}05 0%, ${getPartnerColor(gym.partner_name)}08 100%);">
                         <!-- Card Header with Icon -->
                         <div class="gym-card-header">
                             <div class="gym-card-icon" style="background: ${getPartnerColor(gym.partner_name)}20; color: ${getPartnerColor(gym.partner_name)}">
-                                ${getPartnerIcon(gym.partner_name)}
+                                ${iconDisplay}
                             </div>
                             <div class="gym-card-header-text">
                                 <span class="gym-partner-badge">${gym.partner_name}</span>
@@ -552,7 +570,13 @@
                 state.filteredGyms = [...state.allGyms];
             } else {
                 // Toggle specific filter
-                const chip = Array.from(chips).find(c => c.textContent.trim() === partnerName);
+                const chip = Array.from(chips).find(c => c.getAttribute('data-partner') === partnerName);
+
+                if (!chip) {
+                    console.error('Chip not found for partner:', partnerName);
+                    return;
+                }
+
                 const isActive = chip.classList.contains('active');
 
                 // Remove "All" if it's active

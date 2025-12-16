@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Gym Habit</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -35,7 +35,7 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             background: var(--bg-base);
             color: var(--text-primary);
         }
@@ -824,6 +824,14 @@
                     <label>City</label>
                     <input type="text" id="filterCity" placeholder="e.g., Mumbai" onchange="loadLeads()">
                 </div>
+                <div>
+                    <label>From Date</label>
+                    <input type="date" id="filterFromDate">
+                </div>
+                <div>
+                    <label>To Date</label>
+                    <input type="date" id="filterToDate">
+                </div>
                 <div style="display: flex; align-items: flex-end;">
                     <button class="btn btn-success" onclick="exportCSV()">📊 Export CSV</button>
                 </div>
@@ -995,6 +1003,42 @@
                     <input type="text" id="gymAmenities" placeholder="Cardio, Weights, Yoga, Swimming">
                 </div>
                 <div class="form-group">
+                    <label>Monthly Subscription Amount (₹) *</label>
+                    <input type="number" id="gymSubscriptionAmount" min="0" step="1" required placeholder="e.g., 2499">
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Base monthly price used for auto-calculating plans</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="customPlansToggle" onchange="toggleCustomPlans('add')" style="width: auto; margin: 0;">
+                        <span>Set Custom Plan Pricing (Optional)</span>
+                    </label>
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Check to override auto-calculated plans with custom pricing</small>
+                </div>
+
+                <div id="customPlansSection" style="display: none; padding: 16px; background: var(--bg-base); border-radius: 8px; margin-top: 12px;">
+                    <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-primary);">Custom Subscription Plans</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>1 Month - Total Price (₹)</label>
+                            <input type="number" id="plan1Month" min="0" step="1" placeholder="e.g., 2499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>3 Months - Total Price (₹)</label>
+                            <input type="number" id="plan3Months" min="0" step="1" placeholder="e.g., 6999">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>6 Months - Total Price (₹)</label>
+                            <input type="number" id="plan6Months" min="0" step="1" placeholder="e.g., 13499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>12 Months - Total Price (₹)</label>
+                            <input type="number" id="plan12Months" min="0" step="1" placeholder="e.g., 24999">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>Gym Icon (Optional)</label>
                     <div style="display: flex; gap: 12px; align-items: start;">
                         <div style="flex: 1;">
@@ -1033,11 +1077,14 @@
                 <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
                     Your CSV file should have the following columns:
                 </p>
-                <code style="display: block; background: white; padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">
-                    gym_name,partner_name,address,city,state,pincode,latitude,longitude,amenities
+                <code style="display: block; background: white; padding: 12px; border-radius: 4px; font-size: 11px; overflow-x: auto;">
+                    gym_name,partner_name,address,city,state,pincode,latitude,longitude,amenities,subscription_amount,plan_1m,plan_3m,plan_6m,plan_12m
                 </code>
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                    Amenities should be pipe-separated (e.g., "Cardio|Weights|Yoga")
+                    <strong>Required columns:</strong> gym_name through subscription_amount<br>
+                    <strong>Amenities:</strong> Pipe-separated (e.g., "Cardio|Weights|Yoga")<br>
+                    <strong>subscription_amount:</strong> Monthly base price in ₹ (e.g., 2499). Defaults to 1499 if omitted.<br>
+                    <strong>Custom Plans (Optional):</strong> plan_1m, plan_3m, plan_6m, plan_12m - Total price for 1, 3, 6, and 12 month plans. If omitted, auto-calculated from subscription_amount.
                 </p>
             </div>
             <div class="form-group">
@@ -1150,6 +1197,42 @@
                     <label>Amenities (comma-separated)</label>
                     <input type="text" id="editGymAmenities" placeholder="Cardio, Weights, Yoga, Swimming">
                 </div>
+                <div class="form-group">
+                    <label>Monthly Subscription Amount (₹) *</label>
+                    <input type="number" id="editGymSubscriptionAmount" min="0" step="1" required placeholder="e.g., 2499">
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Base monthly price used for auto-calculating plans</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="editCustomPlansToggle" onchange="toggleCustomPlans('edit')" style="width: auto; margin: 0;">
+                        <span>Set Custom Plan Pricing (Optional)</span>
+                    </label>
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Check to override auto-calculated plans with custom pricing</small>
+                </div>
+
+                <div id="editCustomPlansSection" style="display: none; padding: 16px; background: var(--bg-base); border-radius: 8px; margin-top: 12px;">
+                    <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-primary);">Custom Subscription Plans</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>1 Month - Total Price (₹)</label>
+                            <input type="number" id="editPlan1Month" min="0" step="1" placeholder="e.g., 2499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>3 Months - Total Price (₹)</label>
+                            <input type="number" id="editPlan3Months" min="0" step="1" placeholder="e.g., 6999">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>6 Months - Total Price (₹)</label>
+                            <input type="number" id="editPlan6Months" min="0" step="1" placeholder="e.g., 13499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>12 Months - Total Price (₹)</label>
+                            <input type="number" id="editPlan12Months" min="0" step="1" placeholder="e.g., 24999">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Gym Icon (Optional)</label>
                     <div style="display: flex; gap: 12px; align-items: start;">
@@ -1362,10 +1445,10 @@
                     <label>New Plan *</label>
                     <select id="newPlan" required>
                         <option value="">Select plan...</option>
-                        <option value="Basic - 1 Month">Basic - 1 Month</option>
-                        <option value="Premium - 6 Months">Premium - 6 Months</option>
-                        <option value="Elite - 12 Months">Elite - 12 Months</option>
-                        <option value="Ultimate - 24 Months">Ultimate - 24 Months</option>
+                        <option value="1 Month">1 Month</option>
+                        <option value="3 Months">3 Months</option>
+                        <option value="6 Months">6 Months</option>
+                        <option value="12 Months">12 Months</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1407,6 +1490,35 @@
     let currentUser = null;
     let currentPage = 1;
     let currentLeadId = null;
+
+    // ============================================================================
+    // UTILITY: Convert UTC to IST (Indian Standard Time)
+    // ============================================================================
+    function convertToIST(utcDateString) {
+        const date = new Date(utcDateString);
+        // IST is UTC+5:30
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(date.getTime() + istOffset);
+        return istDate;
+    }
+
+    function formatISTDateTime(utcDateString) {
+        const istDate = convertToIST(utcDateString);
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        };
+        return istDate.toLocaleString('en-IN', options) + ' IST';
+    }
+
+    function formatISTDate(utcDateString) {
+        const istDate = convertToIST(utcDateString);
+        return istDate.toLocaleDateString('en-IN');
+    }
 
     // Initialize
     if (authToken) {
@@ -1569,8 +1681,7 @@
         }
 
         tbody.innerHTML = leads.map(lead => {
-            const date = new Date(lead.created_at);
-            const formattedDateTime = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const formattedDateTime = formatISTDateTime(lead.created_at);
             const assignedName = lead.assigned_to_name || lead.assigned_to || '';
             const assignedBadge = assignedName ? `<span class="badge badge-paid">${assignedName}</span>` : '<span class="badge badge-pending">Unassigned</span>';
             return `
@@ -1705,7 +1816,7 @@
             <div id="commentsSection">
                 ${lead.comments?.map(c => `
                     <div class="comment-item">
-                        <div class="comment-meta">${c.user} • ${new Date(c.timestamp).toLocaleString()}</div>
+                        <div class="comment-meta">${c.user} • ${formatISTDateTime(c.timestamp)}</div>
                         <div>${c.text}</div>
                     </div>
                 `).join('') || '<p style="color: var(--text-secondary);">No comments yet</p>'}
@@ -1876,13 +1987,17 @@
                 body: formData
             });
 
-            if (!response.ok) throw new Error('Failed to update plan');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to update plan');
+            }
 
             showToast('Plan updated successfully', 'success');
             closeUpdatePlanModal();
             viewLead(currentLeadId);
             loadLeads(currentPage);
         } catch (error) {
+            console.error('Plan update error:', error);
             showToast('Error: ' + error.message, 'error');
         }
     }
@@ -1908,13 +2023,7 @@
 
             // Format audit trail with proper UI
             const html = audit.map(entry => {
-                const timestamp = new Date(entry.timestamp).toLocaleString('en-IN', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const timestamp = formatISTDateTime(entry.timestamp);
 
                 const actionLabel = entry.action.replace(/_/g, ' ');
 
@@ -1987,11 +2096,15 @@
         const status = document.getElementById('filterStatus').value;
         const payment = document.getElementById('filterPayment').value;
         const city = document.getElementById('filterCity').value;
+        const fromDate = document.getElementById('filterFromDate').value;
+        const toDate = document.getElementById('filterToDate').value;
 
         const params = new URLSearchParams();
         if (status) params.append('status', status);
         if (payment) params.append('payment_status', payment);
         if (city) params.append('city', city);
+        if (fromDate) params.append('from_date', fromDate);
+        if (toDate) params.append('to_date', toDate);
 
         const url = `/api/admin/reports/leads.csv?${params}`;
 
@@ -2044,7 +2157,7 @@
                 <td>${user.email}</td>
                 <td><span class="badge">${user.role}</span></td>
                 <td><span class="badge ${user.is_active ? 'badge-paid' : 'badge-pending'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
-                <td>${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</td>
+                <td>${user.last_login ? formatISTDateTime(user.last_login) : 'Never'}</td>
                 <td>
                     ${!user.is_active ? `<button class="btn btn-sm btn-success" onclick="activateUser('${user.user_id}')">Activate</button>` : ''}
                     ${user.is_active ? `<button class="btn btn-sm btn-danger" onclick="deactivateUser('${user.user_id}')">Deactivate</button>` : ''}
@@ -2224,6 +2337,19 @@
         }
     }
 
+    function toggleCustomPlans(mode) {
+        const sectionId = mode === 'add' ? 'customPlansSection' : 'editCustomPlansSection';
+        const toggleId = mode === 'add' ? 'customPlansToggle' : 'editCustomPlansToggle';
+        const section = document.getElementById(sectionId);
+        const toggle = document.getElementById(toggleId);
+
+        if (toggle.checked) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
     async function submitAddGym() {
         const gymData = {
             gym_name: document.getElementById('gymName').value,
@@ -2234,8 +2360,26 @@
             pincode: document.getElementById('gymPincode').value,
             latitude: parseFloat(document.getElementById('gymLatitude').value),
             longitude: parseFloat(document.getElementById('gymLongitude').value),
-            amenities: document.getElementById('gymAmenities').value.split(',').map(a => a.trim()).filter(a => a)
+            amenities: document.getElementById('gymAmenities').value.split(',').map(a => a.trim()).filter(a => a),
+            subscription_amount: parseInt(document.getElementById('gymSubscriptionAmount').value) || 1499
         };
+
+        // Add custom plans if enabled
+        const customPlansToggle = document.getElementById('customPlansToggle');
+        if (customPlansToggle && customPlansToggle.checked) {
+            const plan1 = document.getElementById('plan1Month').value;
+            const plan3 = document.getElementById('plan3Months').value;
+            const plan6 = document.getElementById('plan6Months').value;
+            const plan12 = document.getElementById('plan12Months').value;
+
+            if (plan1 || plan3 || plan6 || plan12) {
+                gymData.custom_plans = {};
+                if (plan1) gymData.custom_plans['1_month'] = parseInt(plan1);
+                if (plan3) gymData.custom_plans['3_months'] = parseInt(plan3);
+                if (plan6) gymData.custom_plans['6_months'] = parseInt(plan6);
+                if (plan12) gymData.custom_plans['12_months'] = parseInt(plan12);
+            }
+        }
 
         // Add icon if provided
         const iconEmoji = document.getElementById('gymIconEmoji').value;
@@ -2624,6 +2768,21 @@
             document.getElementById('editGymLatitude').value = gym.latitude || '';
             document.getElementById('editGymLongitude').value = gym.longitude || '';
             document.getElementById('editGymAmenities').value = Array.isArray(gym.amenities) ? gym.amenities.join(', ') : (gym.amenities || '');
+            document.getElementById('editGymSubscriptionAmount').value = gym.subscription_amount || 1499;
+
+            // Handle custom plans
+            if (gym.custom_plans && Object.keys(gym.custom_plans).length > 0) {
+                document.getElementById('editCustomPlansToggle').checked = true;
+                document.getElementById('editCustomPlansSection').style.display = 'block';
+
+                document.getElementById('editPlan1Month').value = gym.custom_plans['1_month'] || '';
+                document.getElementById('editPlan3Months').value = gym.custom_plans['3_months'] || '';
+                document.getElementById('editPlan6Months').value = gym.custom_plans['6_months'] || '';
+                document.getElementById('editPlan12Months').value = gym.custom_plans['12_months'] || '';
+            } else {
+                document.getElementById('editCustomPlansToggle').checked = false;
+                document.getElementById('editCustomPlansSection').style.display = 'none';
+            }
 
             // Handle icon
             if (gym.icon) {
@@ -2677,8 +2836,26 @@
             pincode: document.getElementById('editGymPincode').value,
             latitude: parseFloat(document.getElementById('editGymLatitude').value),
             longitude: parseFloat(document.getElementById('editGymLongitude').value),
-            amenities: document.getElementById('editGymAmenities').value.split(',').map(a => a.trim()).filter(a => a)
+            amenities: document.getElementById('editGymAmenities').value.split(',').map(a => a.trim()).filter(a => a),
+            subscription_amount: parseInt(document.getElementById('editGymSubscriptionAmount').value) || 1499
         };
+
+        // Add custom plans if enabled
+        const customPlansToggle = document.getElementById('editCustomPlansToggle');
+        if (customPlansToggle && customPlansToggle.checked) {
+            const plan1 = document.getElementById('editPlan1Month').value;
+            const plan3 = document.getElementById('editPlan3Months').value;
+            const plan6 = document.getElementById('editPlan6Months').value;
+            const plan12 = document.getElementById('editPlan12Months').value;
+
+            if (plan1 || plan3 || plan6 || plan12) {
+                gymData.custom_plans = {};
+                if (plan1) gymData.custom_plans['1_month'] = parseInt(plan1);
+                if (plan3) gymData.custom_plans['3_months'] = parseInt(plan3);
+                if (plan6) gymData.custom_plans['6_months'] = parseInt(plan6);
+                if (plan12) gymData.custom_plans['12_months'] = parseInt(plan12);
+            }
+        }
 
         // Add icon if provided
         const iconEmoji = document.getElementById('editGymIconEmoji').value;

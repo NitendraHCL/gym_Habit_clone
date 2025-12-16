@@ -210,6 +210,7 @@ class GymCreateRequest(BaseModel):
     amenities: list[str]
     subscription_amount: Optional[int] = 1499
     icon: Optional[str] = None  # Emoji or base64 image
+    custom_plans: Optional[dict] = None  # Custom pricing for 1_month, 3_months, 6_months, 12_months
 
     @field_validator('pincode')
     @classmethod
@@ -416,9 +417,35 @@ async def get_gym_details(gym_id: int):
     if not gym:
         raise HTTPException(status_code=404, detail="Gym not found")
 
-    # Calculate subscription plans
-    base_price = gym['subscription_amount']
-    plans = calculate_subscription_plans(base_price)
+    # Calculate subscription plans - use custom plans if available, otherwise auto-calculate
+    if gym.get('custom_plans'):
+        # Use custom plans and calculate derived values
+        plans = {}
+        custom = gym['custom_plans']
+
+        for key, total in custom.items():
+            duration_map = {'1_month': 1, '3_months': 3, '6_months': 6, '12_months': 12}
+            months = duration_map.get(key, 1)
+            duration_text = f"{months} month{'s' if months > 1 else ''}"
+
+            # Calculate monthly rate and savings based on base price
+            base_price = gym['subscription_amount']
+            expected_total = base_price * months
+            savings = expected_total - total
+            monthly = total // months
+            discount = int((savings / expected_total) * 100) if expected_total > 0 else 0
+
+            plans[key.replace('_', '-')] = {
+                'duration': duration_text,
+                'total': total,
+                'monthly': monthly,
+                'savings': max(0, savings),
+                'discount': discount
+            }
+    else:
+        # Auto-calculate plans based on base price
+        base_price = gym['subscription_amount']
+        plans = calculate_subscription_plans(base_price)
 
     # Parse amenities
     amenities_list = [a.strip() for a in gym['amenities'].split(',')]
@@ -874,6 +901,9 @@ async def create_gym_endpoint(
         raise HTTPException(status_code=403, detail="Access forbidden. Admin only.")
 
     try:
+        # Debug: Log custom_plans
+        print(f"[DEBUG] Creating gym '{request.gym_name}' with custom_plans: {request.custom_plans}")
+
         # Create gym using gym_db manager
         gym_id = await gym_db.create_gym(
             gym_name=request.gym_name,
@@ -886,7 +916,8 @@ async def create_gym_endpoint(
             longitude=request.longitude,
             amenities=request.amenities,
             subscription_amount=request.subscription_amount,
-            icon=request.icon
+            icon=request.icon,
+            custom_plans=request.custom_plans
         )
 
         return {
@@ -907,7 +938,8 @@ async def upload_gyms_csv_endpoint(
 ):
     """
     Upload gyms from CSV file (admin only)
-    CSV Format: gym_name,partner_name,address,city,state,pincode,latitude,longitude,amenities
+    CSV Format: gym_name,partner_name,address,city,state,pincode,latitude,longitude,amenities,subscription_amount,plan_1m,plan_3m,plan_6m,plan_12m
+    Note: plan_1m, plan_3m, plan_6m, plan_12m are optional custom plan prices
     """
     # Check if user is admin
     if current_user.get('role') != 'admin':
@@ -929,12 +961,25 @@ async def upload_gyms_csv_endpoint(
 
         for i, row in enumerate(csv_reader, start=2):  # Start at 2 (line 1 is header)
             try:
-                # Parse amenities (comma-separated in quotes or single string)
+                # Parse amenities (pipe-separated for CSV)
                 amenities_str = row.get('amenities', '')
                 if amenities_str:
-                    amenities = [a.strip() for a in amenities_str.split(',')]
+                    amenities = [a.strip() for a in amenities_str.split('|')]
                 else:
                     amenities = []
+
+                # Parse custom plans if provided
+                custom_plans = None
+                if row.get('plan_1m') or row.get('plan_3m') or row.get('plan_6m') or row.get('plan_12m'):
+                    custom_plans = {}
+                    if row.get('plan_1m'):
+                        custom_plans['1_month'] = int(row['plan_1m'])
+                    if row.get('plan_3m'):
+                        custom_plans['3_months'] = int(row['plan_3m'])
+                    if row.get('plan_6m'):
+                        custom_plans['6_months'] = int(row['plan_6m'])
+                    if row.get('plan_12m'):
+                        custom_plans['12_months'] = int(row['plan_12m'])
 
                 # Create gym
                 await gym_db.create_gym(
@@ -947,7 +992,8 @@ async def upload_gyms_csv_endpoint(
                     latitude=float(row['latitude']),
                     longitude=float(row['longitude']),
                     amenities=amenities,
-                    subscription_amount=int(row.get('subscription_amount', 1499))
+                    subscription_amount=int(row.get('subscription_amount', 1499)),
+                    custom_plans=custom_plans
                 )
 
                 gyms_created += 1
@@ -1286,14 +1332,16 @@ async def update_gym_endpoint(
             longitude=request.longitude,
             amenities=request.amenities,
             subscription_amount=request.subscription_amount,
-            icon=request.icon
+            icon=request.icon,
+            custom_plans=request.custom_plans
         )
 
         if not success:
             raise HTTPException(status_code=404, detail="Gym not found")
 
-        return {"message": "Gym updated successfully"}
+        return {"success": True, "message": "Gym updated successfully"}
     except Exception as e:
+        print(f"Error updating gym: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1333,7 +1381,7 @@ async def update_partner_endpoint(
             raise HTTPException(status_code=404, detail=f"Partner '{partner_name}' not found")
 
         print(f"[SUCCESS] Partner updated: {partner_name} -> {request.name}")
-        return {"message": "Partner updated successfully"}
+        return {"success": True, "message": "Partner updated successfully"}
     except HTTPException:
         raise
     except Exception as e:
@@ -1539,3 +1587,4 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+

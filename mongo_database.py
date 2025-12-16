@@ -227,7 +227,8 @@ class MongoGymDatabase:
         longitude: float,
         amenities: List[str],
         subscription_amount: int = 1499,
-        icon: str = None
+        icon: str = None,
+        custom_plans: dict = None
     ) -> int:
         """
         Create a new gym entry
@@ -270,6 +271,10 @@ class MongoGymDatabase:
             'created_at': datetime.utcnow()
         }
 
+        # Add custom plans if provided
+        if custom_plans:
+            new_gym['custom_plans'] = custom_plans
+
         # Insert into MongoDB
         await self.db.gyms.insert_one(new_gym)
         print(f"[CREATED] Gym created: {gym_name} (ID: {new_gym_id})")
@@ -290,7 +295,8 @@ class MongoGymDatabase:
         longitude: float,
         amenities: List[str],
         subscription_amount: int = 1499,
-        icon: str = None
+        icon: str = None,
+        custom_plans: dict = None
     ) -> bool:
         """
         Update an existing gym
@@ -314,6 +320,12 @@ class MongoGymDatabase:
             'icon': icon,
             'updated_at': datetime.utcnow()
         }
+
+        # Add custom plans if provided, otherwise remove them
+        if custom_plans:
+            update_data['custom_plans'] = custom_plans
+        else:
+            update_data['custom_plans'] = None
 
         result = await self.db.gyms.update_one(
             {'gym_id': gym_id, 'is_active': True},
@@ -442,7 +454,7 @@ class MongoGymDatabase:
             gym: MongoDB document
         Returns: Formatted gym dictionary
         """
-        return {
+        formatted = {
             'id': gym['gym_id'],
             'partner_name': gym['partner_name'],
             'gym_name': gym['gym_name'],
@@ -455,6 +467,16 @@ class MongoGymDatabase:
             'subscription_amount': gym['subscription_amount'],
             'amenities': ', '.join(gym['amenities']) if isinstance(gym['amenities'], list) else gym['amenities']
         }
+
+        # Add optional fields if they exist
+        if 'icon' in gym and gym['icon']:
+            formatted['icon'] = gym['icon']
+            print(f"[DEBUG] _format_gym: Added icon for gym {gym['gym_id']}")
+        if 'custom_plans' in gym and gym['custom_plans']:
+            formatted['custom_plans'] = gym['custom_plans']
+            print(f"[DEBUG] _format_gym: Added custom_plans for gym {gym['gym_id']}: {gym['custom_plans']}")
+
+        return formatted
 
 
 class MongoLeadManager:
@@ -871,19 +893,29 @@ def calculate_subscription_plans(base_monthly: int) -> Dict[str, Dict[str, int]]
             'duration': '1 month',
             'total': base_monthly,
             'monthly': base_monthly,
-            'savings': 0
+            'savings': 0,
+            'discount': 0
         },
         '3-month': {
             'duration': '3 months',
             'total': int(base_monthly * 3 * 0.93),  # 7% discount
             'monthly': int(base_monthly * 0.93),
-            'savings': int(base_monthly * 3 * 0.07)
+            'savings': int(base_monthly * 3 * 0.07),
+            'discount': 7
+        },
+        '6-month': {
+            'duration': '6 months',
+            'total': int(base_monthly * 6 * 0.88),  # 12% discount
+            'monthly': int(base_monthly * 0.88),
+            'savings': int(base_monthly * 6 * 0.12),
+            'discount': 12
         },
         '12-month': {
             'duration': '12 months',
             'total': int(base_monthly * 12 * 0.83),  # 17% discount
             'monthly': int(base_monthly * 0.83),
-            'savings': int(base_monthly * 12 * 0.17)
+            'savings': int(base_monthly * 12 * 0.17),
+            'discount': 17
         }
     }
     return plans

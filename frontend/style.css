@@ -4,40 +4,42 @@
  */
 
 /* ============================================================================
-   CSS VARIABLES - VIBRANT COLOR SYSTEM
+   CSS VARIABLES - NEW DESIGN SYSTEM
    ============================================================================ */
 :root {
-    /* Habit Health Brand Colors - Blue & Orange */
-    --primary-gradient: linear-gradient(135deg, #0056B3 0%, #3380CC 100%);
-    --secondary-gradient: linear-gradient(135deg, #FF8C00 0%, #FFB84D 100%);
-    --success-gradient: linear-gradient(135deg, #10B981 0%, #34D399 100%);
-    --energy-gradient: linear-gradient(135deg, #FF8C00 0%, #FFB84D 100%);
-    --purple-gradient: linear-gradient(135deg, #0056B3 0%, #00A8E8 100%);
-    --orange-gradient: linear-gradient(135deg, #FF8C00 0%, #FFB84D 100%);
-    --blue-gradient: linear-gradient(135deg, #0056B3 0%, #3380CC 100%);
+    /* Primary Navy - Updated to #0c53a0 */
+    --navy-900: #0a4485;
+    --navy-800: #0c53a0;
+    --navy-700: #0d5cae;
+    --navy-600: #1a6cc2;
+    --navy-100: #E3F2FD;
+    --navy-50: #F0F8FF;
 
-    /* Solid Colors - Habit Health Palette */
-    --primary: #0056B3;
-    --primary-dark: #003D82;
-    --brand-blue: #0056B3;
-    --secondary: #FF8C00;
-    --accent-orange: #FFB84D;
-    --accent-blue: #3380CC;
-    --accent-purple: #FFB84D;
-    --accent-light: #FFB84D;
-    --bg-blue-subtle: rgba(0, 86, 179, 0.08);
+    /* Accent Orange */
+    --orange: #E86A33;
+    --orange-light: #FFF4EF;
 
-    /* Backgrounds */
-    --bg-base: #F8F9FE;
-    --bg-dark: #1a1d2e;
-    --bg-card: #ffffff;
-    --bg-overlay: rgba(255, 255, 255, 0.9);
+    /* Neutrals */
+    --white: #FFFFFF;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-900: #111827;
 
-    /* Text */
-    --text-primary: #1a1d2e;
-    --text-secondary: #6b7280;
-    --text-light: #9ca3af;
-    --text-white: #ffffff;
+    /* Legacy mappings */
+    --primary: var(--navy-800);
+    --primary-dark: var(--navy-900);
+    --secondary: var(--orange);
+    --bg-base: var(--gray-50);
+    --bg-card: var(--white);
+    --text-primary: var(--gray-900);
+    --text-secondary: var(--gray-500);
+    --text-white: var(--white);
 
     /* Shadows - Blue Tinted */
     --shadow-sm: 0 2px 8px rgba(0, 86, 179, 0.1);
@@ -71,17 +73,33 @@
     --radius-xl: 32px;
     --radius-full: 9999px;
 
-    /* Typography - Fluid Responsive Sizing */
-    --font-display: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-body: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-size-xs: clamp(10px, 2vw, 12px);
-    --font-size-sm: clamp(12px, 2.5vw, 14px);
-    --font-size-base: clamp(14px, 3vw, 16px);
-    --font-size-lg: clamp(16px, 3.5vw, 18px);
-    --font-size-xl: clamp(18px, 4vw, 24px);
-    --font-size-2xl: clamp(24px, 5vw, 32px);
-    --font-size-3xl: clamp(32px, 6vw, 48px);
-    --font-size-4xl: clamp(40px, 8vw, 64px);
+    /* Typography - NEW DESIGN SYSTEM */
+    --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Source Serif 4', Georgia, serif;
+
+    /* Font Sizes */
+    --text-xs: 11px;
+    --text-sm: 13px;
+    --text-base: 14px;
+    --text-md: 15px;
+    --text-lg: 17px;
+    --text-xl: 22px;
+    --text-2xl: 32px;
+
+    /* Legacy mappings */
+    --font-body: var(--font-primary);
+    --font-size-xs: var(--text-xs);
+    --font-size-sm: var(--text-sm);
+    --font-size-base: var(--text-base);
+    --font-size-lg: var(--text-lg);
+    --font-size-xl: var(--text-xl);
+    --font-size-2xl: var(--text-2xl);
+
+    /* Font Weights */
+    --font-regular: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
 
     /* Transitions */
     --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -138,8 +156,8 @@ body {
    HEADER - MODERN & CLEAN
    ============================================================================ */
 .header {
-    background: var(--bg-card);
-    box-shadow: var(--shadow-sm);
+    background: #F5F5F7;
+    box-shadow: none;
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -149,8 +167,8 @@ body {
 .header-content {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--space-lg) 0;
+    justify-content: flex-start;
+    padding: 20px 0;
     gap: var(--space-lg);
 }
 
@@ -160,65 +178,74 @@ body {
     gap: var(--space-md);
 }
 
-.logo img {
-    height: 48px;
+.logo-image {
+    height: 50px;
     width: auto;
+    object-fit: contain;
 }
 
-.logo-text {
+.logo-main {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 12px;
 }
 
-.logo-title {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    font-weight: 500;
+.logo-habit {
+    font-size: 28px;
+    font-weight: 900;
+    color: #1a1d2e;
+    letter-spacing: 1px;
+}
+
+.logo-tagline {
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.3;
+    font-weight: 400;
 }
 
 .page-title {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    background: var(--primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    display: none;
 }
 
 /* Mobile header optimization */
 @media (max-width: 767px) {
     .header-content {
-        padding: var(--space-md) 0;  /* Reduced padding on mobile */
+        padding: var(--space-md) 0;
     }
 
-    .logo img {
-        height: 36px;  /* Smaller logo on mobile */
+    .logo-image {
+        height: 40px;
     }
 
-    .page-title {
-        font-size: var(--font-size-base);
+    .logo-habit {
+        font-size: 24px;
+    }
+
+    .logo-tagline {
+        font-size: 10px;
     }
 }
 
 /* ============================================================================
-   HERO SECTION - VIBRANT & IMPACTFUL
+   HERO SECTION - NEW DESIGN WITH SEARCH CARD
    ============================================================================ */
 .hero {
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #ffedd5 100%);
+    background: linear-gradient(165deg, var(--navy-800) 0%, var(--navy-900) 100%);
     position: relative;
-    overflow: hidden;
-    padding: var(--space-2xl) 0;
+    overflow: visible;
+    padding: 48px 0 72px 0;
 }
 
 .hero::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
     right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-    opacity: 0.3;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(232, 106, 51, 0.08) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .hero .container {
@@ -226,81 +253,318 @@ body {
     z-index: 1;
 }
 
+.hero-content {
+    text-align: left;
+    margin-bottom: 40px;
+}
+
+.hero-label {
+    font-size: var(--text-xs);
+    color: var(--orange);
+    letter-spacing: 2px;
+    font-weight: var(--font-semibold);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+}
+
+.hero-label::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 2px;
+    background: var(--orange);
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
 .hero-title {
-    font-size: var(--font-size-4xl);
-    font-weight: 900;
-    color: var(--text-white);
-    text-align: center;
-    margin-bottom: var(--space-md);
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    color: var(--white);
     line-height: 1.2;
-    letter-spacing: -0.02em;
+    margin-bottom: 16px;
 }
 
 .hero-subtitle {
-    font-size: var(--font-size-xl);
-    color: rgba(255, 255, 255, 0.95);
-    text-align: center;
-    max-width: 750px;
+    font-family: var(--font-primary);
+    font-size: var(--text-base);
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    max-width: 500px;
+}
+
+/* Search Card - White Overlay */
+.search-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    max-width: 680px;
+    width: 100%;
     margin: 0 auto;
+    position: relative;
+    margin-top: -80px;
+}
+
+/* Responsive search card */
+@media (max-width: 1023px) {
+    .search-card {
+        max-width: 600px;
+    }
+}
+
+@media (max-width: 767px) {
+    .search-card {
+        max-width: 100%;
+        padding: 24px;
+        margin-top: -60px;
+    }
+}
+
+@media (max-width: 479px) {
+    .search-card {
+        padding: 20px;
+        border-radius: 12px;
+    }
+}
+
+.search-card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1d2e;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-icon {
+    color: #6b7280;
+}
+
+/* City Toggle Buttons */
+.city-toggles {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.city-toggle {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 500;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.city-toggle svg {
+    width: 16px;
+    height: 16px;
+}
+
+.city-toggle:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+}
+
+.city-toggle.active {
+    background: var(--navy-800);
+    border-color: var(--navy-800);
+    color: var(--white);
+}
+
+.city-toggle:focus {
+    outline: 2px solid var(--navy-600);
+    outline-offset: 2px;
+}
+
+/* Search Input Group */
+.search-input-group {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.location-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.search-input-modern {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1a1d2e;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.search-input-modern::placeholder {
+    color: #9ca3af;
+}
+
+.search-input-modern:focus {
+    border-color: var(--navy-600);
+    box-shadow: 0 0 0 3px rgba(26, 39, 68, 0.1);
+    background: var(--white);
+}
+
+/* Search Button */
+.search-btn-modern {
+    width: 100%;
+    padding: 16px 24px;
+    background: var(--navy-800);
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-family: var(--font-primary);
+}
+
+.search-btn-modern:hover {
+    background: var(--navy-700);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 32px rgba(26, 39, 68, 0.12);
+}
+
+.search-btn-modern:active {
+    transform: scale(0.98);
+}
+
+.search-btn-modern svg {
+    stroke: #ffffff;
+}
+
+/* Helper Text */
+.search-helper {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+/* Custom Suggestions Dropdown */
+.custom-suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    margin-top: 8px;
+    box-shadow: 0 12px 32px rgba(15, 26, 46, 0.12);
+    border: 1px solid var(--gray-200);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.suggestion-item {
+    padding: 12px 16px;
+    font-size: var(--text-base);
+    color: var(--gray-700);
+    border-top: 1px solid var(--gray-100);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-family: var(--font-primary);
+}
+
+.suggestion-item:first-child {
+    border-top: none;
+}
+
+.suggestion-item:hover {
+    background-color: var(--navy-50);
+    color: var(--navy-800);
+}
+
+.suggestion-item:active {
+    background-color: var(--navy-100);
 }
 
 /* Tablet and below */
 @media (max-width: 1023px) {
     .hero {
-        padding: var(--space-lg) 0;  /* 24px - reduced */
+        padding: 40px 0 120px 0;
+    }
+
+    .hero-title {
+        font-size: 36px;
     }
 }
 
 /* Mobile */
 @media (max-width: 767px) {
     .hero {
-        padding: var(--space-sm) 0;  /* 8px - ultra minimal padding */
+        padding: 30px 0 100px 0;
     }
 
     .hero-title {
-        font-size: var(--font-size-xl);  /* Even smaller on mobile */
-        margin-bottom: var(--space-xs);
+        font-size: 28px;
     }
 
     .hero-subtitle {
-        font-size: var(--font-size-sm);
+        font-size: 14px;
     }
 
-    /* Hide "Find Partner Gyms" title on mobile and all screens */
-    .page-title {
-        display: none;
+    .search-card {
+        padding: 24px;
+        max-width: 100%;
+        margin-top: -60px;
     }
-}
 
-/* Hide page title on all screen sizes */
-.page-title {
-    display: none;
+    .city-toggles {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .city-toggle {
+        flex-shrink: 0;
+        min-width: auto;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
 }
 
 /* ============================================================================
    SECTION TITLES
    ============================================================================ */
 .section-title {
-    font-size: var(--font-size-2xl);
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: var(--space-xl);
-    position: relative;
-    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 .section-title::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 0;
-    width: 60px;
-    height: 4px;
-    background: var(--primary-gradient);
-    border-radius: var(--radius-full);
+    display: none;
 }
 
 /* ============================================================================
@@ -332,10 +596,10 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-md) var(--space-lg);
-    background: var(--bg-card);
-    border: 2px solid var(--bg-base);
-    border-radius: var(--radius-full);
+    padding: 10px 20px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
     cursor: pointer;
     transition: all var(--transition-base);
     box-shadow: var(--shadow-sm);
@@ -357,19 +621,21 @@ body {
 }
 
 .brand-chip:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--navy-800);
 }
 
 .brand-chip.active {
-    background: var(--primary-gradient);
-    border-color: var(--primary);
-    box-shadow: var(--shadow-glow);
-    transform: translateY(-2px) scale(1.05);
+    background: var(--navy-800);
+    border-color: var(--navy-800);
+    box-shadow: 0 4px 16px rgba(26, 39, 68, 0.3);
+    transform: translateY(-1px);
 }
 
 .brand-chip.active .brand-chip-text {
-    color: var(--text-white);
+    color: var(--white);
+    font-weight: var(--font-semibold);
 }
 
 /* Responsive padding for sections */
@@ -667,81 +933,60 @@ body {
 }
 
 /* ============================================================================
-   GYM CARDS - EYE-CATCHING MODERN DESIGN
+   GYM CARDS - CLEAN MODERN DESIGN (Based on Reference)
    ============================================================================ */
 .gym-card {
-    border-radius: var(--radius-md);
+    background: white;
+    border-radius: 16px;
     overflow: hidden;
     cursor: pointer;
     transition: all var(--transition-base);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     position: relative;
-    border: 1px solid #0056B3;
-    margin-bottom: 2px;
-}
-
-.gym-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: var(--primary-gradient);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform var(--transition-base);
-}
-
-.gym-card:hover::before {
-    transform: scaleX(1);
+    border: 1px solid #e5e7eb;
+    padding: 20px;
 }
 
 .gym-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--navy-600);
 }
 
 /* Card Header with Icon */
 .gym-card-header {
     display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: transparent;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
 }
 
 .gym-card-icon {
-    font-size: 32px;
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
+    border-radius: 12px;
     flex-shrink: 0;
-    transition: transform var(--transition-base);
-}
-
-.gym-card:hover .gym-card-icon {
-    transform: scale(1.1) rotate(5deg);
+    font-size: 32px;
 }
 
 .gym-card-header-text {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
+    gap: 4px;
     flex: 1;
 }
 
 /* Badges */
 .gym-card-badge {
     display: inline-block;
-    padding: 6px 16px;
-    background: var(--primary);
+    padding: 0;
+    margin: 0;
+    background: transparent;
     color: var(--text-white);
-    border-radius: var(--radius-full);
+    border-radius: 0;
     font-size: var(--font-size-xs);
     font-weight: 700;
     text-transform: uppercase;
@@ -751,7 +996,7 @@ body {
 .gym-distance-badge {
     display: inline-block;
     padding: 4px 12px;
-    background: var(--energy-gradient);
+    background: linear-gradient(135deg, #1e2a47 0%, #2d3e5f 100%);
     border-radius: var(--radius-full);
     font-size: var(--font-size-xs);
     font-weight: 700;
@@ -763,171 +1008,167 @@ body {
 /* Partner Badge - Used in cards and modal */
 .gym-partner-badge {
     display: inline-block;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
 }
 
 /* Card Body */
 .gym-card-body {
-    padding: var(--space-sm) var(--space-md);
+    padding: 0;
 }
 
 .gym-name {
-    font-size: var(--font-size-sm);
+    font-size: 18px;
     font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: var(--space-xs);
+    color: #1a1d2e;
+    margin-bottom: 6px;
     line-height: 1.3;
 }
 
 .gym-location {
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-    margin-bottom: var(--space-sm);
+    font-size: 14px;
+    color: #9ca3af;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-/* Pricing Section - PROMINENT */
+/* Pricing Section - CLEAN & VISIBLE */
 .gym-pricing {
-    background: rgba(0, 86, 179, 0.06);
-    border: 1px solid rgba(0, 86, 179, 0.15);
-    padding: var(--space-sm);
-    border-radius: var(--radius-sm);
-    margin-bottom: var(--space-sm);
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.gym-pricing::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
-    transform: rotate(45deg);
-    animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    background: #f3f4f6;
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .gym-pricing-label {
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
+    letter-spacing: 0.8px;
 }
 
 .gym-pricing-amount {
     display: flex;
     align-items: baseline;
-    justify-content: center;
-    gap: 4px;
+    gap: 2px;
 }
 
 .gym-price {
-    font-size: var(--font-size-2xl);
-    font-weight: 900;
-    background: var(--primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1d2e;
 }
 
 .gym-price-period {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    font-weight: 600;
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
 }
 
-/* Amenities */
+/* Amenities - Pill Style */
 .gym-amenities {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-xs);
-    margin-bottom: var(--space-sm);
+    gap: 8px;
+    margin-bottom: 20px;
 }
 
 .amenity-tag {
-    padding: 4px 10px;
-    background: transparent;
-    border: 1px solid rgba(0, 86, 179, 0.15);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
+    padding: 8px 14px;
+    background: #f9fafb;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #6b7280;
     font-weight: 500;
     transition: all var(--transition-fast);
 }
 
 .amenity-tag:hover {
-    background: rgba(0, 86, 179, 0.05);
-    border-color: var(--primary);
-    color: var(--primary);
+    background: #e5e7eb;
+    color: #374151;
 }
 
 @media (max-width: 767px) {
     .amenity-tag {
-        padding: 4px 8px;
-        font-size: 10px;
+        padding: 6px 12px;
+        font-size: 12px;
     }
 }
 
 /* Card Footer */
 .gym-card-footer {
-    padding: 0 var(--space-md) var(--space-sm);
+    padding: 0;
+    margin-top: auto;
 }
 
 .gym-card-cta {
     width: 100%;
-    padding: var(--space-xs) var(--space-sm);
-    background: var(--primary);
-    color: var(--text-white);
+    padding: 14px 20px;
+    background: var(--navy-800);
+    color: white;
     border: none;
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
+    border-radius: 12px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-base);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(12, 83, 160, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .gym-card-cta:hover {
+    background: var(--navy-700);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
+    box-shadow: 0 4px 12px rgba(12, 83, 160, 0.3);
 }
 
 /* Mobile optimization for gym cards */
 @media (max-width: 767px) {
     .gym-card {
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        padding: 16px;
+        border-radius: 12px;
     }
 
     .gym-card-header {
-        padding: var(--space-xs) var(--space-sm);
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
     .gym-card-icon {
-        width: 40px;
-        height: 40px;
+        width: 56px;
+        height: 56px;
         font-size: 28px;
     }
 
-    .gym-card-body {
-        padding: var(--space-xs) var(--space-sm);
+    .gym-name {
+        font-size: 16px;
     }
 
-    .gym-card-footer {
-        padding: 0 var(--space-sm) var(--space-xs);
+    .gym-location {
+        font-size: 13px;
+    }
+
+    .gym-pricing {
+        padding: 12px 14px;
+    }
+
+    .gym-card-cta {
+        padding: 12px 16px;
+        font-size: 14px;
     }
 }
 

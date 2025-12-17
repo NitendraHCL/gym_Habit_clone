@@ -8,7 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css?v=11">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;900&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=19">
+    <script>
+        function initMap() {
+            console.log('Google Maps API loaded');
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7MfDXF2Q0Uyiqi08lwIn7HdxpLGUKVnw&libraries=places&callback=initMap" async defer></script>
 </head>
 <body>
     <!-- Header -->
@@ -16,21 +23,91 @@
         <div class="container">
             <div class="header-content">
                 <div class="logo">
-                    <img src="/static/assets/habit_logo.png" alt="Habit Health" />
-                    <div class="logo-text">
-                        <span class="logo-title">by HCL Healthcare</span>
-                    </div>
+                    <img src="/static/logo_habit.png" alt="Habit Health Logo" class="logo-image">
                 </div>
-                <h1 class="page-title">Find Partner Gyms</h1>
             </div>
         </div>
     </header>
 
-    <!-- Hero Section -->
+    <!-- Hero Section with Search Card -->
     <section class="hero">
         <div class="container">
-            <h2 class="hero-title">Transform Your Fitness Journey</h2>
-            <p class="hero-subtitle">Join thousands of members across India's premium fitness partners</p>
+            <div class="hero-content">
+                <p class="hero-label">— PREMIUM FITNESS NETWORK</p>
+                <h2 class="hero-title">Transform Your Fitness<br>Journey</h2>
+                <p class="hero-subtitle">Join thousands of members across India's<br>premium fitness partners</p>
+            </div>
+
+            <!-- White Search Card Overlay -->
+            <div class="search-card">
+                <h3 class="search-card-title">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19 19L14.65 14.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Find Gyms Near You
+                </h3>
+
+                <!-- City Toggle Buttons -->
+                <div class="city-toggles">
+                    <button class="city-toggle" data-city="Mumbai" onclick="selectCity('Mumbai')">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M2 14V8L8 2L14 8V14H9V10H7V14H2Z" fill="currentColor"/>
+                        </svg>
+                        Mumbai
+                    </button>
+                    <button class="city-toggle active" data-city="Delhi" onclick="selectCity('Delhi')">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M2 14V8L8 2L14 8V14H9V10H7V14H2Z" fill="currentColor"/>
+                        </svg>
+                        Delhi
+                    </button>
+                    <button class="city-toggle" data-city="Bangalore" onclick="selectCity('Bangalore')">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M2 14V8L8 2L14 8V14H9V10H7V14H2Z" fill="currentColor"/>
+                        </svg>
+                        Bangalore
+                    </button>
+                </div>
+
+                <!-- Location Search Input -->
+                <div class="search-input-group" style="position: relative;">
+                    <svg class="location-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 10C11.1046 10 12 9.10457 12 8C12 6.89543 11.1046 6 10 6C8.89543 6 8 6.89543 8 8C8 9.10457 8.89543 10 10 10Z" fill="currentColor"/>
+                        <path d="M10 1C6.13401 1 3 4.13401 3 8C3 12.5 10 19 10 19C10 19 17 12.5 17 8C17 4.13401 13.866 1 10 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <input
+                        type="text"
+                        id="locationSearchInput"
+                        class="search-input-modern"
+                        placeholder="Enter city, area, or 6-digit pincode (e.g., Mumbai)"
+                        onkeypress="if(event.key === 'Enter') searchLocation()"
+                        oninput="handleSearchInput(event)"
+                        autocomplete="off"
+                    />
+                    <!-- Custom suggestions dropdown -->
+                    <div id="customSuggestionsDropdown" class="custom-suggestions-dropdown" style="display: none;"></div>
+                </div>
+
+                <!-- Search Button -->
+                <button id="searchBtn" class="search-btn-modern" onclick="searchLocation()">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19 19L14.65 14.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="searchBtnText">Search</span>
+                </button>
+
+                <!-- Helper Text -->
+                <p class="search-helper">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                        <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M8 11V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="8" cy="6" r="0.5" fill="currentColor"/>
+                    </svg>
+                    Try "Andheri Mumbai", "Koramangala Bangalore", or enter a 6-digit pincode
+                </p>
+            </div>
         </div>
     </section>
 
@@ -41,70 +118,6 @@
             <div class="brands-grid" id="brandsGrid">
                 <!-- Brand filter chips will be dynamically loaded -->
                 <div class="loading">Loading partners...</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Location Search Section -->
-    <section class="gyms-section">
-        <div class="container">
-            <div class="location-section" id="locationSection">
-                <h3 style="color: white; font-size: var(--font-size-xl); margin-bottom: var(--space-lg);">🔍 Find Gyms Near You</h3>
-
-                <!-- Popular Areas Quick Links -->
-                <div class="popular-areas-grid" id="popularAreasGrid">
-                    <div class="area-chip" onclick="searchByArea('Mumbai')">
-                        <span class="area-chip-icon">🏙️</span>
-                        <span class="area-chip-text">Mumbai</span>
-                    </div>
-                    <div class="area-chip" onclick="searchByArea('Delhi')">
-                        <span class="area-chip-icon">🏛️</span>
-                        <span class="area-chip-text">Delhi</span>
-                    </div>
-                    <div class="area-chip" onclick="searchByArea('Bangalore')">
-                        <span class="area-chip-icon">💻</span>
-                        <span class="area-chip-text">Bangalore</span>
-                    </div>
-                    <div class="area-chip" onclick="searchByArea('Pune')">
-                        <span class="area-chip-icon">🌆</span>
-                        <span class="area-chip-text">Pune</span>
-                    </div>
-                    <div class="area-chip" onclick="searchByArea('Andheri')">
-                        <span class="area-chip-icon">📍</span>
-                        <span class="area-chip-text">Andheri</span>
-                    </div>
-                    <div class="area-chip" onclick="searchByArea('Bandra')">
-                        <span class="area-chip-icon">📍</span>
-                        <span class="area-chip-text">Bandra</span>
-                    </div>
-                    <div class="area-chip" onclick="searchByArea('Koramangala')">
-                        <span class="area-chip-icon">📍</span>
-                        <span class="area-chip-text">Koramangala</span>
-                    </div>
-                    <div class="area-chip" onclick="searchByArea('Indiranagar')">
-                        <span class="area-chip-icon">📍</span>
-                        <span class="area-chip-text">Indiranagar</span>
-                    </div>
-                </div>
-
-                <!-- Search Input -->
-                <div class="location-search-box" style="margin-top: var(--space-lg);">
-                    <div class="search-input-wrapper">
-                        <input
-                            type="text"
-                            id="locationSearchInput"
-                            class="location-search-input"
-                            placeholder="Enter city, area, or 6-digit pincode (e.g., Mumbai, Andheri, 400053)"
-                            onkeypress="if(event.key === 'Enter') searchLocation()"
-                        />
-                        <button class="search-btn" id="searchBtn" onclick="searchLocation()">
-                            <span id="searchBtnText">Search</span>
-                        </button>
-                    </div>
-                    <p style="color: rgba(255,255,255,0.8); font-size: var(--font-size-sm); margin-top: var(--space-sm);" id="searchHint">
-                        💡 Try: "Andheri Mumbai", "Koramangala Bangalore", or enter a 6-digit pincode
-                    </p>
-                </div>
             </div>
         </div>
     </section>
@@ -349,7 +362,7 @@
                     getPartnerIcon(gym.partner_name);
 
                 return `
-                    <div class="gym-card" onclick="showGymModal(${gym.id})" data-partner="${gym.partner_name}" style="background: linear-gradient(135deg, ${getPartnerColor(gym.partner_name)}05 0%, ${getPartnerColor(gym.partner_name)}08 100%);">
+                    <div class="gym-card" onclick="showGymModal(${gym.id})" data-partner="${gym.partner_name}">
                         <!-- Card Header with Icon -->
                         <div class="gym-card-header">
                             <div class="gym-card-icon" style="background: ${getPartnerColor(gym.partner_name)}20; color: ${getPartnerColor(gym.partner_name)}">
@@ -671,6 +684,24 @@
         }
 
         // ============================================================================
+        // CITY TOGGLE FUNCTIONALITY
+        // ============================================================================
+        function selectCity(city) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.city-toggle').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Add active class to clicked button
+            event.target.closest('.city-toggle').classList.add('active');
+
+            // Set search input and trigger search
+            const searchInput = document.getElementById('locationSearchInput');
+            searchInput.value = city;
+            searchLocation();
+        }
+
+        // ============================================================================
         // PIN CODE AUTO-FILL
         // ============================================================================
         let pinCodeTimeout = null;
@@ -799,6 +830,362 @@
         // ============================================================================
         // INITIALIZATION
         // ============================================================================
+        // ============================================================================
+        // GOOGLE PLACES AUTOCOMPLETE (PAID API - MAXIMUM USAGE)
+        // ============================================================================
+        let placesService = null;
+        let debounceTimer = null;
+        let googleApiAttempts = 0; // Track attempts
+
+        function initPlacesService() {
+            if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+                console.log('⏳ Waiting for Google Maps API...');
+                setTimeout(initPlacesService, 300);
+                return;
+            }
+
+            try {
+                placesService = new google.maps.places.AutocompleteService();
+                console.log('✅ Google Places Service initialized successfully');
+                console.log('✅ Autocomplete ready - type in search to see suggestions');
+            } catch (error) {
+                console.error('❌ Error initializing Places Service:', error);
+                console.error('Error details:', error.message);
+            }
+        }
+
+        // Handle search input with debouncing
+        function handleSearchInput(event) {
+            const input = event.target;
+            const query = input.value.trim();
+
+            // Clear existing timer
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
+
+            // Hide dropdown if input is empty
+            if (!query || query.length < 2) {
+                hideSuggestions();
+                return;
+            }
+
+            // Debounce API calls (wait 200ms after user stops typing for faster response)
+            debounceTimer = setTimeout(() => {
+                fetchPlaceSuggestions(query);
+            }, 200);
+        }
+
+        // Fetch suggestions from Google Places API (PAID - MAXIMUM USAGE)
+        function fetchPlaceSuggestions(query) {
+            console.log('🔍 Fetching suggestions for:', query);
+            googleApiAttempts++;
+
+            // ALWAYS try Google Places API first (paid account)
+            if (placesService) {
+                try {
+                    const request = {
+                        input: query,
+                        componentRestrictions: { country: 'in' },
+                        // Remove types restriction to search EVERYTHING (regions, addresses, establishments)
+                        // types: ['(cities)']  // ← REMOVED for maximum coverage
+                    };
+
+                    console.log('📡 Calling Google Places API (attempt', googleApiAttempts, ')...');
+
+                    placesService.getPlacePredictions(request, (predictions, status) => {
+                        console.log('📡 Google Places API response:', status);
+
+                        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                            console.log('✅ SUCCESS - Found', predictions.length, 'Google Places suggestions');
+                            predictions.forEach((p, i) => console.log(`  ${i+1}. ${p.description}`));
+                            showSuggestions(predictions);
+                        }
+                        else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                            console.log('⚠️ Google API: ZERO_RESULTS for "' + query + '"');
+                            console.log('💡 Falling back to local search');
+                            showLocalSuggestions(query);
+                        }
+                        else if (status === 'REQUEST_DENIED') {
+                            console.error('❌ GOOGLE API ERROR: REQUEST_DENIED');
+                            console.error('🔧 SOLUTION: Enable Places API in Google Cloud Console');
+                            console.error('🔗 Visit: https://console.cloud.google.com/apis/library/places-backend.googleapis.com');
+                            console.log('💡 Using local search as fallback');
+                            showLocalSuggestions(query);
+                        }
+                        else {
+                            console.error('❌ Google Places API error:', status);
+                            console.log('💡 Using local search as fallback');
+                            showLocalSuggestions(query);
+                        }
+                    });
+                } catch (error) {
+                    console.error('❌ Exception calling Google API:', error);
+                    console.log('💡 Using local search as fallback');
+                    showLocalSuggestions(query);
+                }
+            } else {
+                console.warn('⚠️ Google Places Service not initialized');
+                console.log('💡 Using local database suggestions');
+                showLocalSuggestions(query);
+            }
+        }
+
+        // Fuzzy search helper - calculates match score
+        function fuzzyMatchScore(text, query) {
+            text = text.toLowerCase();
+            query = query.toLowerCase();
+
+            // Exact match at start = highest score
+            if (text.startsWith(query)) return 100;
+
+            // Exact match anywhere = high score
+            if (text.includes(query)) return 80;
+
+            // Word boundary match (e.g., "South Delhi" matches "south")
+            const words = text.split(/[\s,]+/);
+            for (let word of words) {
+                if (word.startsWith(query)) return 60;
+                if (word.includes(query)) return 40;
+            }
+
+            // Character-by-character fuzzy match
+            let score = 0;
+            let queryIndex = 0;
+            for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+                if (text[i] === query[queryIndex]) {
+                    score += 10;
+                    queryIndex++;
+                }
+            }
+
+            return queryIndex === query.length ? score : 0;
+        }
+
+        // Show local suggestions from gym database with fuzzy search
+        function showLocalSuggestions(query) {
+            const queryLower = query.toLowerCase().trim();
+
+            if (queryLower.length < 2) {
+                hideSuggestions();
+                return;
+            }
+
+            // Extract all searchable locations from gyms
+            const locationMatches = new Map(); // Use Map to store unique locations with scores
+
+            state.allGyms.forEach(gym => {
+                // Search in gym name
+                const gymNameScore = fuzzyMatchScore(gym.gym_name, queryLower);
+                if (gymNameScore > 0) {
+                    const key = `${gym.gym_name}`;
+                    if (!locationMatches.has(key) || locationMatches.get(key).score < gymNameScore) {
+                        locationMatches.set(key, {
+                            description: `${gym.gym_name}`,
+                            type: 'gym',
+                            score: gymNameScore,
+                            city: gym.city
+                        });
+                    }
+                }
+
+                // Search in city
+                const cityScore = fuzzyMatchScore(gym.city, queryLower);
+                if (cityScore > 0) {
+                    const key = `${gym.city}, India`;
+                    if (!locationMatches.has(key) || locationMatches.get(key).score < cityScore) {
+                        locationMatches.set(key, {
+                            description: `${gym.city}, India`,
+                            type: 'city',
+                            score: cityScore,
+                            city: gym.city
+                        });
+                    }
+                }
+
+                // Search in address - extract areas/localities
+                if (gym.address) {
+                    // Split address by commas and spaces to get individual parts
+                    const addressParts = gym.address.split(/[,\s]+/).filter(p => p.length > 2);
+
+                    addressParts.forEach(part => {
+                        const partScore = fuzzyMatchScore(part, queryLower);
+                        if (partScore > 0) {
+                            const key = `${part}, ${gym.city}`;
+                            if (!locationMatches.has(key) || locationMatches.get(key).score < partScore) {
+                                locationMatches.set(key, {
+                                    description: `${part}, ${gym.city}`,
+                                    type: 'area',
+                                    score: partScore,
+                                    city: gym.city
+                                });
+                            }
+                        }
+                    });
+                }
+
+                // Search in pincode
+                if (gym.pincode && gym.pincode.includes(queryLower)) {
+                    const key = `Pincode ${gym.pincode}, ${gym.city}`;
+                    locationMatches.set(key, {
+                        description: `Pincode ${gym.pincode}, ${gym.city}`,
+                        type: 'pincode',
+                        score: 90,
+                        city: gym.city
+                    });
+                }
+            });
+
+            // Add comprehensive Indian cities, areas, and sectors for broader coverage
+            const commonLocations = [
+                // Major cities
+                'Mumbai', 'Delhi', 'Bangalore', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune',
+
+                // Delhi NCR areas
+                'Saket', 'Vikaspuri', 'Dwarka', 'Rohini', 'Pitampura', 'Janakpuri', 'Lajpat Nagar',
+                'Connaught Place', 'Karol Bagh', 'South Extension', 'Greater Kailash', 'Hauz Khas',
+                'Vasant Kunj', 'Nehru Place', 'Rajouri Garden', 'Patel Nagar', 'Preet Vihar',
+                'Dwarka Sector 10', 'Dwarka Sector 12', 'Dwarka Sector 6', 'Dwarka Sector 7',
+
+                // Noida Sectors (Sector 1-150 major ones)
+                ...Array.from({length: 150}, (_, i) => `Noida Sector ${i + 1}`),
+                'Noida', 'Greater Noida', 'Noida Extension',
+
+                // Gurgaon/Gurugram Sectors (Sector 1-115 major ones)
+                ...Array.from({length: 115}, (_, i) => `Gurgaon Sector ${i + 1}`),
+                ...Array.from({length: 115}, (_, i) => `Gurugram Sector ${i + 1}`),
+                'Gurgaon', 'Gurugram', 'DLF Phase 1', 'DLF Phase 2', 'DLF Phase 3', 'DLF Phase 4', 'DLF Phase 5',
+                'Cyber City', 'Golf Course Road', 'Sohna Road', 'MG Road Gurgaon',
+
+                // Faridabad Sectors
+                ...Array.from({length: 89}, (_, i) => `Faridabad Sector ${i + 1}`),
+                'Faridabad', 'Greater Faridabad', 'NIT Faridabad',
+
+                // Ghaziabad
+                'Ghaziabad', 'Indirapuram', 'Vaishali', 'Vasundhara', 'Crossings Republik',
+
+                // Mumbai areas
+                'Andheri', 'Andheri East', 'Andheri West', 'Bandra', 'Bandra East', 'Bandra West',
+                'Borivali', 'Borivali East', 'Borivali West', 'Malad', 'Malad East', 'Malad West',
+                'Goregaon', 'Goregaon East', 'Goregaon West', 'Powai', 'Thane', 'Navi Mumbai',
+                'Vashi', 'Nerul', 'Juhu', 'Worli', 'Lower Parel', 'Dadar', 'Ghatkopar',
+                'Kandivali', 'Mira Road', 'Virar', 'Mulund', 'Chembur', 'Kurla',
+
+                // Bangalore areas
+                'Koramangala', 'Indiranagar', 'Whitefield', 'HSR Layout', 'Marathahalli', 'Electronic City',
+                'Jayanagar', 'Malleshwaram', 'Bellandur', 'Sarjapur', 'Yelahanka', 'BTM Layout',
+                'Bannerghatta Road', 'Hennur', 'Hebbal', 'Kalyan Nagar', 'CV Raman Nagar',
+
+                // Hyderabad areas
+                'Hitech City', 'Gachibowli', 'Madhapur', 'Kondapur', 'Banjara Hills', 'Jubilee Hills',
+                'Kukatpally', 'Miyapur', 'Secunderabad', 'Ameerpet', 'Begumpet',
+
+                // Chennai areas
+                'T Nagar', 'Adyar', 'Velachery', 'Anna Nagar', 'Nungambakkam', 'Mylapore',
+                'OMR', 'Porur', 'Tambaram', 'Sholinganallur',
+
+                // Pune areas
+                'Hinjewadi', 'Wakad', 'Baner', 'Aundh', 'Viman Nagar', 'Koregaon Park',
+                'Kothrud', 'Hadapsar', 'Magarpatta', 'Kalyani Nagar'
+            ];
+
+            commonLocations.forEach(location => {
+                const score = fuzzyMatchScore(location, queryLower);
+                if (score > 0) {
+                    const key = `${location}, India`;
+                    if (!locationMatches.has(key) || locationMatches.get(key).score < score) {
+                        locationMatches.set(key, {
+                            description: `${location}, India`,
+                            type: 'area',
+                            score: score
+                        });
+                    }
+                }
+            });
+
+            // Convert map to array and sort by score (highest first)
+            const sortedMatches = Array.from(locationMatches.values())
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 8); // Top 8 results
+
+            if (sortedMatches.length > 0) {
+                console.log(`✅ Found ${sortedMatches.length} fuzzy matches`);
+                sortedMatches.forEach((match, i) => {
+                    console.log(`  ${i+1}. ${match.description} (${match.type}, score: ${match.score})`);
+                });
+
+                // Format as Google-style predictions
+                const predictions = sortedMatches.map(match => ({
+                    description: match.description
+                }));
+
+                showSuggestions(predictions);
+            } else {
+                console.log('⚠️ No local suggestions found');
+                hideSuggestions();
+            }
+        }
+
+        // Show suggestions dropdown
+        function showSuggestions(predictions) {
+            const dropdown = document.getElementById('customSuggestionsDropdown');
+            if (!dropdown) {
+                console.error('❌ Dropdown element not found!');
+                return;
+            }
+
+            console.log('📝 Showing', predictions.length, 'suggestions in dropdown');
+            dropdown.innerHTML = '';
+
+            predictions.forEach((prediction, index) => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.textContent = prediction.description;
+                item.onclick = () => selectSuggestion(prediction.description);
+                dropdown.appendChild(item);
+                console.log(`  ${index + 1}. ${prediction.description}`);
+            });
+
+            dropdown.style.display = 'block';
+            console.log('✅ Dropdown displayed');
+        }
+
+        // Hide suggestions dropdown
+        function hideSuggestions() {
+            const dropdown = document.getElementById('customSuggestionsDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Select a suggestion
+        function selectSuggestion(description) {
+            const input = document.getElementById('locationSearchInput');
+            if (input) {
+                // Extract city name from description
+                const cityMatch = description.match(/^([^,]+)/);
+                input.value = cityMatch ? cityMatch[1].trim() : description;
+                hideSuggestions();
+                searchLocation();
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('customSuggestionsDropdown');
+            const input = document.getElementById('locationSearchInput');
+            if (dropdown && input && !dropdown.contains(e.target) && e.target !== input) {
+                hideSuggestions();
+            }
+        });
+
+        // Initialize Places Service when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPlacesService);
+        } else {
+            initPlacesService();
+        }
+
         async function init() {
             console.log('🏋️ Gym Habit - Initializing...');
 

@@ -1340,6 +1340,8 @@ async def update_gym_endpoint(
             raise HTTPException(status_code=404, detail="Gym not found")
 
         return {"success": True, "message": "Gym updated successfully"}
+    except HTTPException:
+        raise  # Re-raise HTTPException as-is
     except Exception as e:
         print(f"Error updating gym: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

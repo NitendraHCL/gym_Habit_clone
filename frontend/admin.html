@@ -2745,7 +2745,18 @@
                 headers: { 'Authorization': `Bearer ${authToken}` }
             });
             const data = await response.json();
-            const gym = data.gyms.find(g => (g.id || g._id) === gymId);
+
+            // Convert gymId to number if it looks like a number
+            let searchId = gymId;
+            if (!isNaN(gymId) && gymId !== '') {
+                searchId = parseInt(gymId);
+            }
+
+            // Try to find gym by ID (handle both string and number IDs)
+            const gym = data.gyms.find(g => {
+                const gId = g.id || g._id;
+                return gId == searchId || String(gId) === String(searchId);
+            });
 
             if (!gym) {
                 showToast('Gym not found', 'error');

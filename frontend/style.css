@@ -943,7 +943,7 @@ body {
     transition: all var(--transition-base);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     position: relative;
-    border: 1px solid #e0e4e8;
+    border: 1px solid #d1d5db;
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -1146,7 +1146,7 @@ body {
     .gym-card {
         padding: 14px;
         border-radius: 12px;
-        border: 1px solid #e0e4e8;
+        border: 1px solid #d1d5db;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     }
 
@@ -1350,6 +1350,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 8px;
+    margin-top: 12px;
     margin-bottom: 12px;
 }
 
@@ -1450,10 +1451,36 @@ body {
 }
 
 /* Mobile optimization for plan cards */
-@media (max-width: 479px) {
+@media (max-width: 767px) {
     .plans-grid {
-        grid-template-columns: repeat(2, 1fr);  /* 2 columns on small phones */
-        gap: var(--space-sm);
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .plan-card {
+        padding: 8px 6px;
+    }
+
+    .plan-duration {
+        font-size: 9px;
+        margin-bottom: 3px;
+    }
+
+    .plan-total {
+        font-size: 14px;
+        margin-bottom: 2px;
+    }
+
+    .plan-monthly {
+        font-size: 9px;
+        margin-bottom: 3px;
+    }
+
+    .plan-discount {
+        padding: 1px 5px;
+        font-size: 8px;
+        margin-top: 3px;
     }
 }
 

@@ -352,7 +352,9 @@
             gymsGrid.innerHTML = gyms.map(gym => {
                 const addressParts = gym.address.split(' ');
                 const location = addressParts.slice(-2).join(' '); // Get city area
-                const amenitiesList = gym.amenities.split(',').slice(0, 3);
+                const allAmenities = gym.amenities.split(',').map(a => a.trim());
+                const amenitiesList = allAmenities.slice(0, 2);
+                const remainingCount = allAmenities.length - 2;
 
                 // Determine icon to display - gym icon first, then partner icon, then default
                 const iconDisplay = gym.icon ?
@@ -391,7 +393,8 @@
 
                             <!-- Amenities -->
                             <div class="gym-amenities">
-                                ${amenitiesList.map(a => `<span class="amenity-tag">${a.trim()}</span>`).join('')}
+                                ${amenitiesList.map(a => `<span class="amenity-tag">${a}</span>`).join('')}
+                                ${remainingCount > 0 ? `<span class="amenity-tag amenity-more">+${remainingCount} more</span>` : ''}
                             </div>
                         </div>
 

@@ -1,0 +1,3036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Gym Habit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --primary-light: #3b82f6;
+            --secondary: #f59e0b;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --bg-base: #f9fafb;
+            --bg-card: #ffffff;
+            --bg-hover: #f3f4f6;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-light: #9ca3af;
+            --border: #e5e7eb;
+            --border-light: #f3f4f6;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
+        }
+
+        /* Login Screen */
+        .login-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            padding: 48px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-xl);
+            max-width: 420px;
+            width: 100%;
+            border: 1px solid var(--border-light);
+        }
+
+        .login-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .header {
+            background: var(--bg-card);
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 28px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Tabs */
+        /* SIDEBAR LAYOUT */
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+            background: var(--bg-base);
+        }
+
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 4px;
+        }
+
+        .sidebar-nav {
+            padding: 12px 0;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: rgba(255, 255, 255, 0.9);
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .sidebar-item.active {
+            background: rgba(255, 255, 255, 0.15);
+            border-left-color: #60a5fa;
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 0;
+            width: calc(100% - 260px);
+        }
+
+        /* Hide old tabs styling */
+        .tabs {
+            display: none;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: 0.3px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: var(--bg-base);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        tr:hover {
+            background: var(--bg-hover);
+        }
+
+        tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: capitalize;
+        }
+
+        .badge-new { background: #dbeafe; color: #1e40af; }
+        .badge-contacted { background: #fef3c7; color: #92400e; }
+        .badge-interested { background: #d1fae5; color: #065f46; }
+        .badge-not_interested { background: #fee2e2; color: #991b1b; }
+        .badge-closed { background: #e5e7eb; color: #374151; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-link_shared { background: #dbeafe; color: #1e40af; }
+        .badge-paid { background: #d1fae5; color: #065f46; }
+        .badge-failed { background: #fee2e2; color: #991b1b; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-light);
+        }
+
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-base);
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            border-top: 2px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        /* Filters */
+        .filters {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        /* Audit Trail */
+        .audit-item {
+            background: var(--bg-base);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .audit-item.status_change {
+            border-left-color: var(--primary);
+        }
+
+        .audit-item.payment_update {
+            border-left-color: var(--success);
+        }
+
+        .audit-item.plan_change {
+            border-left-color: var(--secondary);
+        }
+
+        .audit-item.comment_added {
+            border-left-color: var(--warning);
+        }
+
+        .audit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .audit-action {
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: capitalize;
+        }
+
+        .audit-timestamp {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .audit-user {
+            font-size: 13px;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .audit-details {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .audit-change {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .audit-change .old-value {
+            color: var(--danger);
+            text-decoration: line-through;
+        }
+
+        .audit-change .new-value {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 2000;
+        }
+
+        .toast.active {
+            display: block;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); }
+            to { transform: translateX(0); }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-item {
+            padding: 16px;
+            background: var(--bg-base);
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .comment-item {
+            padding: 12px;
+            background: var(--bg-base);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .comment-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .audit-item {
+            padding: 12px;
+            border-left: 3px solid var(--primary);
+            background: var(--bg-base);
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .audit-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-screen">
+    <div class="login-card">
+        <h1 class="login-title">Gym Habit Admin</h1>
+        <p class="login-subtitle">Sign in to manage leads and users</p>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" required placeholder="admin@habithealth.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+        </form>
+    </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboardScreen" class="dashboard">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">Gym Habit</h2>
+            <div class="sidebar-subtitle">Admin Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="sidebar-item active" onclick="switchTab('leads')">
+                <span class="sidebar-icon">📝</span>
+                <span>Leads</span>
+            </button>
+            <button class="sidebar-item" onclick="switchTab('gyms')">
+                <span class="sidebar-icon">🏢</span>
+                <span>Gyms</span>
+            </button>
+            <button class="sidebar-item" onclick="switchTab('partners')">
+                <span class="sidebar-icon">🔗</span>
+                <span>Partners</span>
+            </button>
+            <button class="sidebar-item" id="sidebarUsersTab" style="display: none;" onclick="switchTab('users')">
+                <span class="sidebar-icon">👤</span>
+                <span>Users</span>
+            </button>
+        </nav>
+        <div style="position: absolute; bottom: 0; width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <div style="padding: 16px 20px;">
+                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-bottom: 8px;" id="sidebarUserName">Admin</div>
+                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-bottom: 12px;" id="sidebarUserRole">admin</div>
+                <button class="btn btn-sm" onclick="logout()" style="background: rgba(255, 255, 255, 0.1); color: white; width: 100%; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <span style="margin-right: 8px;">🚪</span> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="container header-content">
+                <div>
+                    <h1 style="font-size: 24px; font-weight: 700; color: var(--primary);">Dashboard</h1>
+                </div>
+                <div class="user-info" style="display: none;">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;" id="userName">Admin</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);" id="userRole">admin</div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotalLeads">0</div>
+                <div class="stat-label">Total Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statNewLeads">0</div>
+                <div class="stat-label">New Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statPaidLeads">0</div>
+                <div class="stat-label">Paid</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statTotalGyms">0</div>
+                <div class="stat-label">Total Gyms</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('leads')">Leads</button>
+            <button class="tab" onclick="switchTab('gyms')">Gyms</button>
+            <button class="tab" onclick="switchTab('partners')">Partners</button>
+            <button class="tab" onclick="switchTab('users')" id="usersTab" style="display: none;">Users</button>
+        </div>
+
+        <!-- Tab: Leads -->
+        <div id="tabLeads" class="tab-content active">
+            <!-- Filters -->
+            <div class="filters">
+                <div>
+                    <label>Status</label>
+                    <select id="filterStatus" onchange="loadLeads()">
+                        <option value="">All</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="interested">Interested</option>
+                        <option value="not_interested">Not Interested</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Payment Status</label>
+                    <select id="filterPayment" onchange="loadLeads()">
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="link_shared">Link Shared</option>
+                        <option value="paid">Paid</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div>
+                    <label>City</label>
+                    <input type="text" id="filterCity" placeholder="e.g., Mumbai" onchange="loadLeads()">
+                </div>
+                <div>
+                    <label>From Date</label>
+                    <input type="date" id="filterFromDate">
+                </div>
+                <div>
+                    <label>To Date</label>
+                    <input type="date" id="filterToDate">
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-success" onclick="exportCSV()">📊 Export CSV</button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Lead ID</th>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Gym</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Assigned To</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsTable">
+                        <tr><td colspan="9" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination"></div>
+        </div>
+
+        <!-- Tab: Users -->
+        <!-- Tab: Gyms -->
+        <div id="tabGyms" class="tab-content">
+            <div style="margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="addGymBtn" onclick="showAddGymModal()">➕ Add Gym</button>
+                <button class="btn btn-secondary" id="uploadGymsBtn" onclick="showUploadGymsModal()">📁 Upload CSV</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Gym Name</th>
+                            <th>Partner</th>
+                            <th>City</th>
+                            <th>Address</th>
+                            <th>Amenities</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gymsTable">
+                        <tr><td colspan="6" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Partners -->
+        <div id="tabPartners" class="tab-content">
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" id="addPartnerBtn" onclick="showAddPartnerModal()">➕ Add Partner</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Partner Name</th>
+                            <th>Total Gyms</th>
+                            <th>Cities</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partnersTable">
+                        <tr><td colspan="4" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Users -->
+        <div id="tabUsers" class="tab-content">
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="showCreateUserModal()">➕ Create User</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable">
+                        <tr><td colspan="6" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div><!-- Close container -->
+    </div><!-- Close main-content -->
+</div><!-- Close dashboard -->
+
+<!-- Lead Detail Modal -->
+<div id="leadModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="leadModalTitle">Lead Details</h2>
+            <button class="close-btn" onclick="closeLeadModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="leadModalBody">
+            Loading...
+        </div>
+    </div>
+</div>
+
+<!-- Add Gym Modal -->
+<div id="addGymModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add New Gym</h2>
+            <button class="close-btn" onclick="closeAddGymModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addGymForm">
+                <div class="form-group">
+                    <label>Gym Name *</label>
+                    <input type="text" id="gymName" required>
+                </div>
+                <div class="form-group">
+                    <label>Partner *</label>
+                    <select id="gymPartner" required>
+                        <option value="">Select partner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Address *</label>
+                    <textarea id="gymAddress" rows="2" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>City *</label>
+                    <input type="text" id="gymCity" required>
+                </div>
+                <div class="form-group">
+                    <label>State *</label>
+                    <input type="text" id="gymState" required>
+                </div>
+                <div class="form-group">
+                    <label>PIN Code *</label>
+                    <input type="text" id="gymPincode" pattern="[0-9]{6}" maxlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label>Latitude *</label>
+                    <input type="number" id="gymLatitude" step="any" required placeholder="e.g., 19.0760">
+                </div>
+                <div class="form-group">
+                    <label>Longitude *</label>
+                    <input type="number" id="gymLongitude" step="any" required placeholder="e.g., 72.8777">
+                </div>
+                <div class="form-group">
+                    <label>Amenities (comma-separated)</label>
+                    <input type="text" id="gymAmenities" placeholder="Cardio, Weights, Yoga, Swimming">
+                </div>
+                <div class="form-group">
+                    <label>Monthly Subscription Amount (₹) *</label>
+                    <input type="number" id="gymSubscriptionAmount" min="0" step="1" required placeholder="e.g., 2499">
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Base monthly price used for auto-calculating plans</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="customPlansToggle" onchange="toggleCustomPlans('add')" style="width: auto; margin: 0;">
+                        <span>Set Custom Plan Pricing (Optional)</span>
+                    </label>
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Check to override auto-calculated plans with custom pricing</small>
+                </div>
+
+                <div id="customPlansSection" style="display: none; padding: 16px; background: var(--bg-base); border-radius: 8px; margin-top: 12px;">
+                    <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-primary);">Custom Subscription Plans</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>1 Month - Total Price (₹)</label>
+                            <input type="number" id="plan1Month" min="0" step="1" placeholder="e.g., 2499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>3 Months - Total Price (₹)</label>
+                            <input type="number" id="plan3Months" min="0" step="1" placeholder="e.g., 6999">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>6 Months - Total Price (₹)</label>
+                            <input type="number" id="plan6Months" min="0" step="1" placeholder="e.g., 13499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>12 Months - Total Price (₹)</label>
+                            <input type="number" id="plan12Months" min="0" step="1" placeholder="e.g., 24999">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Gym Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="gymIconEmoji" placeholder="Enter emoji (e.g., 🏋️, 💪, 🏃)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="gymIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="gymIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="gymIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeAddGymModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAddGym()">Add Gym</button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Gyms CSV Modal -->
+<div id="uploadGymsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Upload Gyms from CSV</h2>
+            <button class="close-btn" onclick="closeUploadGymsModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 20px; padding: 16px; background: var(--bg-base); border-radius: 6px;">
+                <h4 style="margin-bottom: 8px;">CSV Format Requirements:</h4>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                    Your CSV file should have the following columns:
+                </p>
+                <code style="display: block; background: white; padding: 12px; border-radius: 4px; font-size: 11px; overflow-x: auto;">
+                    gym_name,partner_name,address,city,state,pincode,latitude,longitude,amenities,subscription_amount,plan_1m,plan_3m,plan_6m,plan_12m
+                </code>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+                    <strong>Required columns:</strong> gym_name through subscription_amount<br>
+                    <strong>Amenities:</strong> Pipe-separated (e.g., "Cardio|Weights|Yoga")<br>
+                    <strong>subscription_amount:</strong> Monthly base price in ₹ (e.g., 2499). Defaults to 1499 if omitted.<br>
+                    <strong>Custom Plans (Optional):</strong> plan_1m, plan_3m, plan_6m, plan_12m - Total price for 1, 3, 6, and 12 month plans. If omitted, auto-calculated from subscription_amount.
+                </p>
+            </div>
+            <div class="form-group">
+                <label>Select CSV File *</label>
+                <input type="file" id="gymsCSVFile" accept=".csv" style="padding: 10px;">
+            </div>
+            <div id="uploadProgress" style="display: none; margin-top: 16px;">
+                <div style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">Uploading...</div>
+                <div style="background: var(--bg-base); height: 8px; border-radius: 4px; overflow: hidden;">
+                    <div id="uploadProgressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeUploadGymsModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitUploadGyms()">Upload</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Partner Modal -->
+<div id="addPartnerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add New Partner</h2>
+            <button class="close-btn" onclick="closeAddPartnerModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addPartnerForm">
+                <div class="form-group">
+                    <label>Partner Name *</label>
+                    <input type="text" id="partnerName" required placeholder="e.g., Gold's Gym">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="partnerDescription" rows="3" placeholder="Brief description about the partner"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Partner Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="partnerIconEmoji" placeholder="Enter emoji (e.g., 🤝, 🏢, 💼)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="partnerIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="partnerIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="partnerIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeAddPartnerModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAddPartner()">Add Partner</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Edit Gym Modal -->
+<div id="editGymModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Gym</h2>
+            <button class="close-btn" onclick="closeEditGymModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editGymForm">
+                <input type="hidden" id="editGymId">
+                <div class="form-group">
+                    <label>Gym Name *</label>
+                    <input type="text" id="editGymName" required>
+                </div>
+                <div class="form-group">
+                    <label>Partner *</label>
+                    <select id="editGymPartner" required>
+                        <option value="">Select partner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Address *</label>
+                    <textarea id="editGymAddress" rows="2" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>City *</label>
+                    <input type="text" id="editGymCity" required>
+                </div>
+                <div class="form-group">
+                    <label>State *</label>
+                    <input type="text" id="editGymState" required>
+                </div>
+                <div class="form-group">
+                    <label>PIN Code *</label>
+                    <input type="text" id="editGymPincode" pattern="[0-9]{6}" maxlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label>Latitude *</label>
+                    <input type="number" id="editGymLatitude" step="any" required placeholder="e.g., 19.0760">
+                </div>
+                <div class="form-group">
+                    <label>Longitude *</label>
+                    <input type="number" id="editGymLongitude" step="any" required placeholder="e.g., 72.8777">
+                </div>
+                <div class="form-group">
+                    <label>Amenities (comma-separated)</label>
+                    <input type="text" id="editGymAmenities" placeholder="Cardio, Weights, Yoga, Swimming">
+                </div>
+                <div class="form-group">
+                    <label>Monthly Subscription Amount (₹) *</label>
+                    <input type="number" id="editGymSubscriptionAmount" min="0" step="1" required placeholder="e.g., 2499">
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Base monthly price used for auto-calculating plans</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="editCustomPlansToggle" onchange="toggleCustomPlans('edit')" style="width: auto; margin: 0;">
+                        <span>Set Custom Plan Pricing (Optional)</span>
+                    </label>
+                    <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Check to override auto-calculated plans with custom pricing</small>
+                </div>
+
+                <div id="editCustomPlansSection" style="display: none; padding: 16px; background: var(--bg-base); border-radius: 8px; margin-top: 12px;">
+                    <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-primary);">Custom Subscription Plans</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>1 Month - Total Price (₹)</label>
+                            <input type="number" id="editPlan1Month" min="0" step="1" placeholder="e.g., 2499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>3 Months - Total Price (₹)</label>
+                            <input type="number" id="editPlan3Months" min="0" step="1" placeholder="e.g., 6999">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>6 Months - Total Price (₹)</label>
+                            <input type="number" id="editPlan6Months" min="0" step="1" placeholder="e.g., 13499">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>12 Months - Total Price (₹)</label>
+                            <input type="number" id="editPlan12Months" min="0" step="1" placeholder="e.g., 24999">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Gym Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="editGymIconEmoji" placeholder="Enter emoji (e.g., 🏋️, 💪, 🏃)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="editGymIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="editGymIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="editGymIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeEditGymModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitEditGym()">Update Gym</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Partner Modal -->
+<div id="editPartnerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Partner</h2>
+            <button class="close-btn" onclick="closeEditPartnerModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editPartnerForm">
+                <input type="hidden" id="editPartnerOldName">
+                <div class="form-group">
+                    <label>Partner Name *</label>
+                    <input type="text" id="editPartnerName" required placeholder="e.g., Gold's Gym">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editPartnerDescription" rows="3" placeholder="Brief description about the partner"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Partner Icon (Optional)</label>
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <div style="flex: 1;">
+                            <input type="text" id="editPartnerIconEmoji" placeholder="Enter emoji (e.g., 🤝, 🏢, 💼)" maxlength="2" style="font-size: 18px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Enter an emoji</small>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="file" id="editPartnerIconFile" accept="image/*" style="font-size: 13px;">
+                            <small style="display: block; margin-top: 4px; color: var(--text-secondary);">Or upload an image</small>
+                        </div>
+                    </div>
+                    <div id="editPartnerIconPreview" style="margin-top: 12px; display: none;">
+                        <strong style="font-size: 13px; color: var(--text-secondary);">Preview:</strong>
+                        <div id="editPartnerIconPreviewContent" style="margin-top: 8px; padding: 12px; background: var(--bg-base); border-radius: 6px; display: inline-block;"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeEditPartnerModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitEditPartner()">Update Partner</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div id="createUserModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Create New User</h2>
+            <button class="close-btn" onclick="closeCreateUserModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password * (min 8 characters)</label>
+                    <input type="password" name="password" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label>Role *</label>
+                    <select name="role" required>
+                        <option value="viewer">Viewer (Read-only)</option>
+                        <option value="facilitator">Facilitator (Manage leads)</option>
+                        <option value="admin">Admin (Full access)</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeCreateUserModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="createUser()">Create User</button>
+        </div>
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="updateStatusModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Lead Status</h2>
+            <button class="close-btn" onclick="closeUpdateStatusModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="updateStatusForm">
+                <div class="form-group">
+                    <label>New Status *</label>
+                    <select id="newStatus" required>
+                        <option value="">Select status...</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="interested">Interested</option>
+                        <option value="not_interested">Not Interested</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason (optional)</label>
+                    <textarea id="statusReason" rows="3" placeholder="Why is the status being changed?"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeUpdateStatusModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitStatusUpdate()">Update Status</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Comment Modal -->
+<div id="addCommentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Internal Comment</h2>
+            <button class="close-btn" onclick="closeAddCommentModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addCommentForm">
+                <div class="form-group">
+                    <label>Comment *</label>
+                    <textarea id="commentText" rows="4" required placeholder="Enter your comment here..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeAddCommentModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitComment()">Add Comment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Update Payment Modal -->
+<div id="updatePaymentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Payment Details</h2>
+            <button class="close-btn" onclick="closeUpdatePaymentModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="updatePaymentForm">
+                <div class="form-group">
+                    <label>Payment Status *</label>
+                    <select id="paymentStatus" required>
+                        <option value="">Select status...</option>
+                        <option value="pending">Pending</option>
+                        <option value="link_shared">Link Shared</option>
+                        <option value="paid">Paid</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₹)</label>
+                    <input type="number" id="paymentAmount" placeholder="e.g., 14999">
+                </div>
+                <div class="form-group">
+                    <label>Payment Link</label>
+                    <input type="url" id="paymentLink" placeholder="https://...">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeUpdatePaymentModal()">Cancel</button>
+            <button class="btn btn-success" onclick="submitPaymentUpdate()">Update Payment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Update Plan Modal -->
+<div id="updatePlanModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Change Membership Plan</h2>
+            <button class="close-btn" onclick="closeUpdatePlanModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="updatePlanForm">
+                <div class="form-group">
+                    <label>New Plan *</label>
+                    <select id="newPlan" required>
+                        <option value="">Select plan...</option>
+                        <option value="1 Month">1 Month</option>
+                        <option value="3 Months">3 Months</option>
+                        <option value="6 Months">6 Months</option>
+                        <option value="12 Months">12 Months</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason (optional)</label>
+                    <textarea id="planReason" rows="3" placeholder="Why is the plan being changed?"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeUpdatePlanModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitPlanUpdate()">Update Plan</button>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Trail Modal -->
+<div id="auditTrailModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2>Complete Audit Trail</h2>
+            <button class="close-btn" onclick="closeAuditTrailModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="auditTrailContent" style="max-height: 500px; overflow-y: auto;">
+                Loading...
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeAuditTrailModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+    let authToken = localStorage.getItem('authToken');
+    let currentUser = null;
+    let currentPage = 1;
+    let currentLeadId = null;
+
+    // ============================================================================
+    // UTILITY: Convert UTC to IST (Indian Standard Time)
+    // ============================================================================
+    function convertToIST(utcDateString) {
+        const date = new Date(utcDateString);
+        // IST is UTC+5:30
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(date.getTime() + istOffset);
+        return istDate;
+    }
+
+    function formatISTDateTime(utcDateString) {
+        const istDate = convertToIST(utcDateString);
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        };
+        return istDate.toLocaleString('en-IN', options) + ' IST';
+    }
+
+    function formatISTDate(utcDateString) {
+        const istDate = convertToIST(utcDateString);
+        return istDate.toLocaleDateString('en-IN');
+    }
+
+    // Initialize
+    if (authToken) {
+        verifyToken();
+    } else {
+        showLogin();
+    }
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (!response.ok) throw new Error('Invalid credentials');
+
+            const data = await response.json();
+            authToken = data.access_token;
+            currentUser = data.user;
+            localStorage.setItem('authToken', authToken);
+
+            showDashboard();
+            loadStats();
+            loadLeads();
+        } catch (error) {
+            showToast('Login failed: ' + error.message, 'error');
+        }
+    });
+
+    async function verifyToken() {
+        try {
+            const response = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) throw new Error('Invalid token');
+
+            currentUser = await response.json();
+            showDashboard();
+            loadStats();
+            loadLeads();
+        } catch (error) {
+            localStorage.removeItem('authToken');
+            showLogin();
+        }
+    }
+
+    function showLogin() {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('dashboardScreen').classList.remove('active');
+    }
+
+    function showDashboard() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('dashboardScreen').classList.add('active');
+
+        // Set user info in header
+        document.getElementById('userName').textContent = currentUser.name || currentUser.email;
+        document.getElementById('userRole').textContent = currentUser.role;
+        document.getElementById('userAvatar').textContent = (currentUser.name || currentUser.email)[0].toUpperCase();
+
+        // Set user info in sidebar
+        document.getElementById('sidebarUserName').textContent = currentUser.name || currentUser.email;
+        document.getElementById('sidebarUserRole').textContent = currentUser.role;
+
+        // Show/hide features based on role
+        if (currentUser.role === 'admin') {
+            // Admin can see and do everything
+            document.getElementById('usersTab').style.display = 'block';
+            document.getElementById('sidebarUsersTab').style.display = 'flex';
+            // Admin can add gyms and partners
+            if (document.getElementById('addGymBtn')) document.getElementById('addGymBtn').style.display = 'inline-block';
+            if (document.getElementById('uploadGymsBtn')) document.getElementById('uploadGymsBtn').style.display = 'inline-block';
+            if (document.getElementById('addPartnerBtn')) document.getElementById('addPartnerBtn').style.display = 'inline-block';
+        } else {
+            // Facilitator (support) - hide admin-only features
+            document.getElementById('usersTab').style.display = 'none';
+            document.getElementById('sidebarUsersTab').style.display = 'none';
+            // Hide gym and partner management
+            if (document.getElementById('addGymBtn')) document.getElementById('addGymBtn').style.display = 'none';
+            if (document.getElementById('uploadGymsBtn')) document.getElementById('uploadGymsBtn').style.display = 'none';
+            if (document.getElementById('addPartnerBtn')) document.getElementById('addPartnerBtn').style.display = 'none';
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('authToken');
+        authToken = null;
+        currentUser = null;
+        showLogin();
+
+        // Call logout API (optional)
+        fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        }).catch(() => {});
+    }
+
+    // Stats
+    async function loadStats() {
+        try {
+            const response = await fetch('/api/admin/stats', {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const data = await response.json();
+
+            document.getElementById('statTotalLeads').textContent = data.total_leads || 0;
+            document.getElementById('statNewLeads').textContent = data.status_breakdown?.new || 0;
+            document.getElementById('statPaidLeads').textContent = data.payment_breakdown?.paid || 0;
+            document.getElementById('statTotalGyms').textContent = data.total_gyms || 0;
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
+    }
+
+    // Leads
+    async function loadLeads(page = 1) {
+        currentPage = page;
+        const status = document.getElementById('filterStatus').value;
+        const payment = document.getElementById('filterPayment').value;
+        const city = document.getElementById('filterCity').value;
+
+        const params = new URLSearchParams({
+            page: page,
+            per_page: 20
+        });
+
+        if (status) params.append('status', status);
+        if (payment) params.append('payment_status', payment);
+        if (city) params.append('city', city);
+
+        try {
+            const response = await fetch(`/api/admin/leads?${params}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const data = await response.json();
+            renderLeads(data.leads);
+            renderPagination(data.page, data.pages);
+        } catch (error) {
+            document.getElementById('leadsTable').innerHTML =
+                '<tr><td colspan="9" style="text-align: center; color: red;">Error loading leads</td></tr>';
+        }
+    }
+
+    function renderLeads(leads) {
+        const tbody = document.getElementById('leadsTable');
+
+        if (!leads || leads.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No leads found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = leads.map(lead => {
+            const formattedDateTime = formatISTDateTime(lead.created_at);
+            const assignedName = lead.assigned_to_name || lead.assigned_to || '';
+            const assignedBadge = assignedName ? `<span class="badge badge-paid">${assignedName}</span>` : '<span class="badge badge-pending">Unassigned</span>';
+            return `
+            <tr>
+                <td>${lead.lead_id}</td>
+                <td>${lead.full_name}</td>
+                <td>${lead.phone}</td>
+                <td>${lead.gym_name}</td>
+                <td>${lead.preferred_plan}</td>
+                <td><span class="badge badge-${lead.status}">${lead.status}</span></td>
+                <td><span class="badge badge-${lead.payment.status}">${lead.payment.status}</span></td>
+                <td>${assignedBadge}</td>
+                <td style="white-space: nowrap;">${formattedDateTime}</td>
+                <td><button class="btn btn-sm btn-primary" onclick="viewLead('${lead.lead_id}')">View</button></td>
+            </tr>
+            `;
+        }).join('');
+    }
+
+    function renderPagination(current, total) {
+        const pagination = document.getElementById('pagination');
+
+        if (total <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+
+        if (current > 1) {
+            html += `<button class="page-btn" onclick="loadLeads(${current - 1})">← Prev</button>`;
+        }
+
+        for (let i = Math.max(1, current - 2); i <= Math.min(total, current + 2); i++) {
+            html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="loadLeads(${i})">${i}</button>`;
+        }
+
+        if (current < total) {
+            html += `<button class="page-btn" onclick="loadLeads(${current + 1})">Next →</button>`;
+        }
+
+        pagination.innerHTML = html;
+    }
+
+    // View Lead
+    async function viewLead(leadId) {
+        currentLeadId = leadId;
+        document.getElementById('leadModal').classList.add('active');
+        document.getElementById('leadModalBody').innerHTML = '<div class="loading">Loading...</div>';
+
+        try {
+            const response = await fetch(`/api/admin/leads/${leadId}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const lead = await response.json();
+            renderLeadDetail(lead);
+
+            // Hide audit trail and change plan for facilitator
+            if (currentUser.role === 'facilitator') {
+                setTimeout(() => {
+                    if (document.getElementById('viewAuditBtn')) {
+                        document.getElementById('viewAuditBtn').style.display = 'none';
+                    }
+                    if (document.getElementById('changePlanBtn')) {
+                        document.getElementById('changePlanBtn').style.display = 'none';
+                    }
+                }, 100);
+            }
+        } catch (error) {
+            document.getElementById('leadModalBody').innerHTML = '<p style="color: red;">Error loading lead details</p>';
+        }
+    }
+
+    function renderLeadDetail(lead) {
+        document.getElementById('leadModalTitle').textContent = `Lead: ${lead.lead_id}`;
+
+        const html = `
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Full Name</div>
+                    <div class="info-value">${lead.full_name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">${lead.email || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phone</div>
+                    <div class="info-value">${lead.phone}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">City</div>
+                    <div class="info-value">${lead.user_location?.city || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Gym</div>
+                    <div class="info-value">${lead.gym_name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Partner</div>
+                    <div class="info-value">${lead.partner_name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Plan</div>
+                    <div class="info-value">${lead.preferred_plan}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Status</div>
+                    <div class="info-value"><span class="badge badge-${lead.status}">${lead.status}</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Payment Status</div>
+                    <div class="info-value"><span class="badge badge-${lead.payment.status}">${lead.payment.status}</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Payment Amount</div>
+                    <div class="info-value">₹${lead.payment.amount || 'N/A'}</div>
+                </div>
+            </div>
+
+            <div class="section-title">Actions</div>
+            <div class="actions">
+                <button class="btn btn-sm btn-primary" onclick="updateStatus()">Update Status</button>
+                <button class="btn btn-sm btn-secondary" onclick="addComment()">Add Comment</button>
+                <button class="btn btn-sm btn-success" onclick="updatePayment()">Update Payment</button>
+                <button class="btn btn-sm" id="changePlanBtn" onclick="updatePlan()">Change Plan</button>
+                <button class="btn btn-sm" id="viewAuditBtn" onclick="viewAudit()">View Audit Trail</button>
+            </div>
+
+            <div class="section-title" style="margin-top: 24px;">Comments (${lead.comments?.length || 0})</div>
+            <div id="commentsSection">
+                ${lead.comments?.map(c => `
+                    <div class="comment-item">
+                        <div class="comment-meta">${c.user} • ${formatISTDateTime(c.timestamp)}</div>
+                        <div>${c.text}</div>
+                    </div>
+                `).join('') || '<p style="color: var(--text-secondary);">No comments yet</p>'}
+            </div>
+        `;
+
+        document.getElementById('leadModalBody').innerHTML = html;
+    }
+
+    function closeLeadModal() {
+        document.getElementById('leadModal').classList.remove('active');
+        currentLeadId = null;
+    }
+
+    // Update Status - Open Modal
+    function updateStatus() {
+        document.getElementById('updateStatusModal').style.display = 'flex';
+        document.getElementById('newStatus').value = '';
+        document.getElementById('statusReason').value = '';
+    }
+
+    function closeUpdateStatusModal() {
+        document.getElementById('updateStatusModal').style.display = 'none';
+    }
+
+    async function submitStatusUpdate() {
+        const status = document.getElementById('newStatus').value;
+        const reason = document.getElementById('statusReason').value;
+
+        if (!status) {
+            showToast('Please select a status', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('status', status);
+        if (reason) formData.append('reason', reason);
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/status`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${authToken}` },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to update status');
+
+            showToast('Status updated successfully', 'success');
+            closeUpdateStatusModal();
+            viewLead(currentLeadId);
+            loadLeads(currentPage);
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Add Comment - Open Modal
+    function addComment() {
+        document.getElementById('addCommentModal').style.display = 'flex';
+        document.getElementById('commentText').value = '';
+    }
+
+    function closeAddCommentModal() {
+        document.getElementById('addCommentModal').style.display = 'none';
+    }
+
+    async function submitComment() {
+        const comment = document.getElementById('commentText').value.trim();
+
+        if (!comment) {
+            showToast('Please enter a comment', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('comment', comment);
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/comments`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to add comment');
+
+            showToast('Comment added successfully', 'success');
+            closeAddCommentModal();
+            viewLead(currentLeadId);
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Update Payment - Open Modal
+    function updatePayment() {
+        document.getElementById('updatePaymentModal').style.display = 'flex';
+        document.getElementById('paymentStatus').value = '';
+        document.getElementById('paymentAmount').value = '';
+        document.getElementById('paymentLink').value = '';
+    }
+
+    function closeUpdatePaymentModal() {
+        document.getElementById('updatePaymentModal').style.display = 'none';
+    }
+
+    async function submitPaymentUpdate() {
+        const status = document.getElementById('paymentStatus').value;
+        const amount = document.getElementById('paymentAmount').value;
+        const link = document.getElementById('paymentLink').value;
+
+        if (!status) {
+            showToast('Please select a payment status', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('payment_status', status);
+        if (amount) formData.append('amount', amount);
+        if (link) formData.append('payment_link', link);
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/payment`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${authToken}` },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to update payment');
+
+            showToast('Payment updated successfully', 'success');
+            closeUpdatePaymentModal();
+            viewLead(currentLeadId);
+            loadLeads(currentPage);
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Update Plan - Open Modal
+    function updatePlan() {
+        document.getElementById('updatePlanModal').style.display = 'flex';
+        document.getElementById('newPlan').value = '';
+        document.getElementById('planReason').value = '';
+    }
+
+    function closeUpdatePlanModal() {
+        document.getElementById('updatePlanModal').style.display = 'none';
+    }
+
+    async function submitPlanUpdate() {
+        const plan = document.getElementById('newPlan').value;
+        const reason = document.getElementById('planReason').value;
+
+        if (!plan) {
+            showToast('Please select a plan', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('new_plan', plan);
+        if (reason) formData.append('reason', reason);
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/plan`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${authToken}` },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to update plan');
+            }
+
+            showToast('Plan updated successfully', 'success');
+            closeUpdatePlanModal();
+            viewLead(currentLeadId);
+            loadLeads(currentPage);
+        } catch (error) {
+            console.error('Plan update error:', error);
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // View Audit - Open Modal
+    async function viewAudit() {
+        // Open modal
+        document.getElementById('auditTrailModal').style.display = 'flex';
+        document.getElementById('auditTrailContent').innerHTML = '<div class="loading">Loading audit trail...</div>';
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/audit`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const data = await response.json();
+            const audit = data.audit_trail || [];
+
+            if (audit.length === 0) {
+                document.getElementById('auditTrailContent').innerHTML = '<div class="empty-state">No audit trail found for this lead.</div>';
+                return;
+            }
+
+            // Format audit trail with proper UI
+            const html = audit.map(entry => {
+                const timestamp = formatISTDateTime(entry.timestamp);
+
+                const actionLabel = entry.action.replace(/_/g, ' ');
+
+                let detailsHtml = '';
+
+                // Status change
+                if (entry.action === 'status_change') {
+                    detailsHtml = `
+                        <div class="audit-change">
+                            <span class="old-value">${entry.old_value || 'N/A'}</span>
+                            →
+                            <span class="new-value">${entry.new_value || 'N/A'}</span>
+                        </div>
+                        ${entry.reason ? `<div class="audit-details"><strong>Reason:</strong> ${entry.reason}</div>` : ''}
+                    `;
+                }
+                // Payment update
+                else if (entry.action === 'payment_update') {
+                    detailsHtml = `
+                        <div class="audit-change">
+                            Status: <span class="old-value">${entry.old_status || 'N/A'}</span>
+                            →
+                            <span class="new-value">${entry.new_status || 'N/A'}</span>
+                        </div>
+                        ${entry.amount ? `<div class="audit-details"><strong>Amount:</strong> ₹${entry.amount}</div>` : ''}
+                        ${entry.payment_link ? `<div class="audit-details"><strong>Link:</strong> <a href="${entry.payment_link}" target="_blank">${entry.payment_link}</a></div>` : ''}
+                    `;
+                }
+                // Plan change
+                else if (entry.action === 'plan_change') {
+                    detailsHtml = `
+                        <div class="audit-change">
+                            <span class="old-value">${entry.old_value || 'N/A'}</span>
+                            →
+                            <span class="new-value">${entry.new_value || 'N/A'}</span>
+                        </div>
+                        ${entry.reason ? `<div class="audit-details"><strong>Reason:</strong> ${entry.reason}</div>` : ''}
+                    `;
+                }
+                // Comment added
+                else if (entry.action === 'comment_added') {
+                    detailsHtml = `<div class="audit-details">${entry.comment || ''}</div>`;
+                }
+
+                return `
+                    <div class="audit-item ${entry.action}">
+                        <div class="audit-header">
+                            <span class="audit-action">${actionLabel}</span>
+                            <span class="audit-timestamp">${timestamp}</span>
+                        </div>
+                        <div class="audit-user">By: ${entry.user}</div>
+                        ${detailsHtml}
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('auditTrailContent').innerHTML = html || '<div class="empty-state">No audit data available.</div>';
+        } catch (error) {
+            document.getElementById('auditTrailContent').innerHTML = '<div class="empty-state">Error loading audit trail. Please try again.</div>';
+            showToast('Error loading audit trail', 'error');
+        }
+    }
+
+    function closeAuditTrailModal() {
+        document.getElementById('auditTrailModal').style.display = 'none';
+    }
+
+    // Export CSV
+    async function exportCSV() {
+        const status = document.getElementById('filterStatus').value;
+        const payment = document.getElementById('filterPayment').value;
+        const city = document.getElementById('filterCity').value;
+        const fromDate = document.getElementById('filterFromDate').value;
+        const toDate = document.getElementById('filterToDate').value;
+
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
+        if (payment) params.append('payment_status', payment);
+        if (city) params.append('city', city);
+        if (fromDate) params.append('from_date', fromDate);
+        if (toDate) params.append('to_date', toDate);
+
+        const url = `/api/admin/reports/leads.csv?${params}`;
+
+        try {
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to export');
+
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `leads_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+
+            showToast('CSV exported successfully', 'success');
+        } catch (error) {
+            showToast('Error exporting CSV', 'error');
+        }
+    }
+
+    // Users
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/admin/users', {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const data = await response.json();
+            renderUsers(data.users);
+        } catch (error) {
+            document.getElementById('usersTable').innerHTML =
+                '<tr><td colspan="6" style="text-align: center; color: red;">Error loading users</td></tr>';
+        }
+    }
+
+    function renderUsers(users) {
+        const tbody = document.getElementById('usersTable');
+
+        if (!users || users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No users found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = users.map(user => `
+            <tr>
+                <td>${user.name}</td>
+                <td>${user.email}</td>
+                <td><span class="badge">${user.role}</span></td>
+                <td><span class="badge ${user.is_active ? 'badge-paid' : 'badge-pending'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
+                <td>${user.last_login ? formatISTDateTime(user.last_login) : 'Never'}</td>
+                <td>
+                    ${!user.is_active ? `<button class="btn btn-sm btn-success" onclick="activateUser('${user.user_id}')">Activate</button>` : ''}
+                    ${user.is_active ? `<button class="btn btn-sm btn-danger" onclick="deactivateUser('${user.user_id}')">Deactivate</button>` : ''}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function showCreateUserModal() {
+        document.getElementById('createUserModal').classList.add('active');
+    }
+
+    function closeCreateUserModal() {
+        document.getElementById('createUserModal').classList.remove('active');
+        document.getElementById('createUserForm').reset();
+    }
+
+    async function createUser() {
+        const form = document.getElementById('createUserForm');
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to create user');
+
+            showToast('User created successfully', 'success');
+            closeCreateUserModal();
+            loadUsers();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+
+    async function activateUser(userId) {
+        if (!confirm('Are you sure you want to activate this user?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/activate`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to activate user');
+
+            showToast('User activated successfully', 'success');
+            loadUsers();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    async function deactivateUser(userId) {
+        if (!confirm('Are you sure you want to deactivate this user? They will not be able to login.')) return;
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to deactivate user');
+
+            showToast('User deactivated successfully', 'success');
+            loadUsers();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Tab switching
+    function switchTab(tab) {
+        // Update sidebar navigation
+        document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+        // Activate clicked sidebar item
+        if (event && event.target) {
+            event.target.classList.add('active');
+            // If clicked on icon or text inside button, activate parent button
+            if (event.target.tagName !== 'BUTTON') {
+                event.target.closest('button').classList.add('active');
+            }
+        }
+
+        // Activate tab content
+        document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+
+        // Load data for specific tabs
+        if (tab === 'users') {
+            loadUsers();
+        } else if (tab === 'gyms') {
+            loadGyms();
+        } else if (tab === 'partners') {
+            loadPartners();
+        }
+    }
+
+    // Close modals on outside click
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    }
+
+    // Toast
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} active`;
+        setTimeout(() => toast.classList.remove('active'), 3000);
+    }
+
+    // ============================================================================
+    // GYM MANAGEMENT
+    // ============================================================================
+
+    async function loadGyms() {
+        try {
+            const response = await fetch('/api/gyms', {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const data = await response.json();
+            const gyms = data.gyms || [];  // ← FIX: Extract gyms array from response
+
+            const table = document.getElementById('gymsTable');
+            if (!gyms || gyms.length === 0) {
+                table.innerHTML = '<tr><td colspan="6" class="empty-state">No gyms found</td></tr>';
+                return;
+            }
+
+            table.innerHTML = gyms.map(gym => `
+                <tr>
+                    <td>${gym.gym_name}</td>
+                    <td>${gym.partner_name}</td>
+                    <td>${gym.city}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.address}</td>
+                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.amenities || 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editGym('${gym.id || gym._id}')">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteGym('${gym.id || gym._id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading gyms:', error);
+            document.getElementById('gymsTable').innerHTML = '<tr><td colspan="6" class="empty-state">Error loading gyms</td></tr>';
+        }
+    }
+
+    function showAddGymModal() {
+        // Load partners for dropdown
+        loadPartnersForGymForm();
+        document.getElementById('addGymModal').style.display = 'flex';
+        document.getElementById('addGymForm').reset();
+    }
+
+    function closeAddGymModal() {
+        document.getElementById('addGymModal').style.display = 'none';
+    }
+
+    async function loadPartnersForGymForm() {
+        try {
+            const response = await fetch('/api/partners');
+            const data = await response.json();
+            const select = document.getElementById('gymPartner');
+            select.innerHTML = '<option value="">Select partner...</option>' +
+                data.partners.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        } catch (error) {
+            console.error('Error loading partners:', error);
+        }
+    }
+
+    function toggleCustomPlans(mode) {
+        const sectionId = mode === 'add' ? 'customPlansSection' : 'editCustomPlansSection';
+        const toggleId = mode === 'add' ? 'customPlansToggle' : 'editCustomPlansToggle';
+        const section = document.getElementById(sectionId);
+        const toggle = document.getElementById(toggleId);
+
+        if (toggle.checked) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    async function submitAddGym() {
+        const gymData = {
+            gym_name: document.getElementById('gymName').value,
+            partner_name: document.getElementById('gymPartner').value,
+            address: document.getElementById('gymAddress').value,
+            city: document.getElementById('gymCity').value,
+            state: document.getElementById('gymState').value,
+            pincode: document.getElementById('gymPincode').value,
+            latitude: parseFloat(document.getElementById('gymLatitude').value),
+            longitude: parseFloat(document.getElementById('gymLongitude').value),
+            amenities: document.getElementById('gymAmenities').value.split(',').map(a => a.trim()).filter(a => a),
+            subscription_amount: parseInt(document.getElementById('gymSubscriptionAmount').value) || 1499
+        };
+
+        // Add custom plans if enabled
+        const customPlansToggle = document.getElementById('customPlansToggle');
+        if (customPlansToggle && customPlansToggle.checked) {
+            const plan1 = document.getElementById('plan1Month').value;
+            const plan3 = document.getElementById('plan3Months').value;
+            const plan6 = document.getElementById('plan6Months').value;
+            const plan12 = document.getElementById('plan12Months').value;
+
+            if (plan1 || plan3 || plan6 || plan12) {
+                gymData.custom_plans = {};
+                if (plan1) gymData.custom_plans['1_month'] = parseInt(plan1);
+                if (plan3) gymData.custom_plans['3_months'] = parseInt(plan3);
+                if (plan6) gymData.custom_plans['6_months'] = parseInt(plan6);
+                if (plan12) gymData.custom_plans['12_months'] = parseInt(plan12);
+            }
+        }
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('gymIconEmoji').value;
+        const iconFile = document.getElementById('gymIconFile').files[0];
+
+        if (iconEmoji) {
+            gymData.icon = iconEmoji;
+        } else if (iconFile) {
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                gymData.icon = base64;
+            } catch (error) {
+                showToast('Error reading image file', 'error');
+                return;
+            }
+        }
+
+        try {
+            const response = await fetch('/api/admin/gyms', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gymData)
+            });
+
+            if (!response.ok) throw new Error('Failed to add gym');
+
+            showToast('Gym added successfully', 'success');
+            closeAddGymModal();
+            loadGyms();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    function showUploadGymsModal() {
+        document.getElementById('uploadGymsModal').style.display = 'flex';
+        document.getElementById('gymsCSVFile').value = '';
+        document.getElementById('uploadProgress').style.display = 'none';
+    }
+
+    function closeUploadGymsModal() {
+        document.getElementById('uploadGymsModal').style.display = 'none';
+    }
+
+    async function submitUploadGyms() {
+        const fileInput = document.getElementById('gymsCSVFile');
+        if (!fileInput.files || !fileInput.files[0]) {
+            showToast('Please select a CSV file', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        try {
+            document.getElementById('uploadProgress').style.display = 'block';
+            document.getElementById('uploadProgressBar').style.width = '50%';
+
+            const response = await fetch('/api/admin/gyms/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: formData
+            });
+
+            document.getElementById('uploadProgressBar').style.width = '100%';
+
+            if (!response.ok) throw new Error('Failed to upload CSV');
+
+            const result = await response.json();
+            showToast(`Successfully uploaded ${result.count || 0} gyms`, 'success');
+            closeUploadGymsModal();
+            loadGyms();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        } finally {
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('uploadProgressBar').style.width = '0%';
+        }
+    }
+
+    async function deleteGym(gymId) {
+        if (!confirm('Are you sure you want to delete this gym?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/gyms/${gymId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to delete gym');
+
+            showToast('Gym deleted successfully', 'success');
+            loadGyms();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // ============================================================================
+    // PARTNER MANAGEMENT
+    // ============================================================================
+
+    async function loadPartners() {
+        try {
+            const response = await fetch('/api/partners');
+            const data = await response.json();
+            const partners = data.partners || [];
+
+            const table = document.getElementById('partnersTable');
+            if (partners.length === 0) {
+                table.innerHTML = '<tr><td colspan="4" class="empty-state">No partners found</td></tr>';
+                return;
+            }
+
+            table.innerHTML = partners.map(partner => `
+                <tr>
+                    <td>${partner.name}</td>
+                    <td>${partner.gym_count || 0}</td>
+                    <td>${partner.cities ? partner.cities.join(', ') : 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editPartner('${partner.name}')">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePartner('${partner.name}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading partners:', error);
+            document.getElementById('partnersTable').innerHTML = '<tr><td colspan="4" class="empty-state">Error loading partners</td></tr>';
+        }
+    }
+
+    function showAddPartnerModal() {
+        document.getElementById('addPartnerModal').style.display = 'flex';
+        document.getElementById('addPartnerForm').reset();
+    }
+
+    function closeAddPartnerModal() {
+        document.getElementById('addPartnerModal').style.display = 'none';
+    }
+
+    async function submitAddPartner() {
+        const partnerData = {
+            name: document.getElementById('partnerName').value,
+            description: document.getElementById('partnerDescription').value
+        };
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('partnerIconEmoji').value;
+        const iconFile = document.getElementById('partnerIconFile').files[0];
+
+        if (iconEmoji) {
+            partnerData.icon = iconEmoji;
+        } else if (iconFile) {
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                partnerData.icon = base64;
+            } catch (error) {
+                showToast('Error reading image file', 'error');
+                return;
+            }
+        }
+
+        try {
+            const response = await fetch('/api/admin/partners', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(partnerData)
+            });
+
+            if (!response.ok) throw new Error('Failed to add partner');
+
+            showToast('Partner added successfully', 'success');
+            closeAddPartnerModal();
+            loadPartners();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    async function deletePartner(partnerName) {
+        if (!confirm(`Are you sure you want to delete ${partnerName}? This will also remove all associated gyms.`)) return;
+
+        try {
+            const response = await fetch(`/api/admin/partners/${encodeURIComponent(partnerName)}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to delete partner');
+
+            showToast('Partner deleted successfully', 'success');
+            loadPartners();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Icon handling for gym and partner forms
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gym icon handling
+        const gymEmojiInput = document.getElementById('gymIconEmoji');
+        const gymFileInput = document.getElementById('gymIconFile');
+        const gymPreview = document.getElementById('gymIconPreview');
+        const gymPreviewContent = document.getElementById('gymIconPreviewContent');
+
+        if (gymEmojiInput) {
+            gymEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    gymFileInput.value = '';
+                    gymPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    gymPreview.style.display = 'block';
+                } else {
+                    gymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (gymFileInput) {
+            gymFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    gymEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        gymPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        gymPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    gymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        // Partner icon handling
+        const partnerEmojiInput = document.getElementById('partnerIconEmoji');
+        const partnerFileInput = document.getElementById('partnerIconFile');
+        const partnerPreview = document.getElementById('partnerIconPreview');
+        const partnerPreviewContent = document.getElementById('partnerIconPreviewContent');
+
+        if (partnerEmojiInput) {
+            partnerEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    partnerFileInput.value = '';
+                    partnerPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    partnerPreview.style.display = 'block';
+                } else {
+                    partnerPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (partnerFileInput) {
+            partnerFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    partnerEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        partnerPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        partnerPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    partnerPreview.style.display = 'none';
+                }
+            });
+        }
+
+        // Edit Gym icon handling
+        const editGymEmojiInput = document.getElementById('editGymIconEmoji');
+        const editGymFileInput = document.getElementById('editGymIconFile');
+        const editGymPreview = document.getElementById('editGymIconPreview');
+        const editGymPreviewContent = document.getElementById('editGymIconPreviewContent');
+
+        if (editGymEmojiInput) {
+            editGymEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    if (editGymFileInput) editGymFileInput.value = '';
+                    editGymPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    editGymPreview.style.display = 'block';
+                } else {
+                    editGymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (editGymFileInput) {
+            editGymFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    if (editGymEmojiInput) editGymEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        editGymPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        editGymPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    editGymPreview.style.display = 'none';
+                }
+            });
+        }
+
+        // Edit Partner icon handling
+        const editPartnerEmojiInput = document.getElementById('editPartnerIconEmoji');
+        const editPartnerFileInput = document.getElementById('editPartnerIconFile');
+        const editPartnerPreview = document.getElementById('editPartnerIconPreview');
+        const editPartnerPreviewContent = document.getElementById('editPartnerIconPreviewContent');
+
+        if (editPartnerEmojiInput) {
+            editPartnerEmojiInput.addEventListener('input', function() {
+                if (this.value) {
+                    if (editPartnerFileInput) editPartnerFileInput.value = '';
+                    editPartnerPreviewContent.innerHTML = '<span style="font-size: 32px;">' + this.value + '</span>';
+                    editPartnerPreview.style.display = 'block';
+                } else {
+                    editPartnerPreview.style.display = 'none';
+                }
+            });
+        }
+
+        if (editPartnerFileInput) {
+            editPartnerFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    if (editPartnerEmojiInput) editPartnerEmojiInput.value = '';
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        editPartnerPreviewContent.innerHTML = '<img src="' + e.target.result + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                        editPartnerPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    editPartnerPreview.style.display = 'none';
+                }
+            });
+        }
+    });
+
+
+    // Edit Gym Functions
+    let currentEditGymData = null;
+
+    async function editGym(gymId) {
+        try {
+            // Fetch gym data
+            const response = await fetch(`/api/gyms`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const data = await response.json();
+
+            // Convert gymId to number if it looks like a number
+            let searchId = gymId;
+            if (!isNaN(gymId) && gymId !== '') {
+                searchId = parseInt(gymId);
+            }
+
+            // Try to find gym by ID (handle both string and number IDs)
+            const gym = data.gyms.find(g => {
+                const gId = g.id || g._id;
+                return gId == searchId || String(gId) === String(searchId);
+            });
+
+            if (!gym) {
+                showToast('Gym not found', 'error');
+                return;
+            }
+
+            currentEditGymData = gym;
+
+            // Load partners for dropdown
+            await loadPartnersForEditGymForm();
+
+            // Populate form
+            document.getElementById('editGymId').value = gymId;
+            document.getElementById('editGymName').value = gym.gym_name || '';
+            document.getElementById('editGymPartner').value = gym.partner_name || '';
+            document.getElementById('editGymAddress').value = gym.address || '';
+            document.getElementById('editGymCity').value = gym.city || '';
+            document.getElementById('editGymState').value = gym.state || '';
+            document.getElementById('editGymPincode').value = gym.pincode || '';
+            document.getElementById('editGymLatitude').value = gym.latitude || '';
+            document.getElementById('editGymLongitude').value = gym.longitude || '';
+            document.getElementById('editGymAmenities').value = Array.isArray(gym.amenities) ? gym.amenities.join(', ') : (gym.amenities || '');
+            document.getElementById('editGymSubscriptionAmount').value = gym.subscription_amount || 1499;
+
+            // Handle custom plans
+            if (gym.custom_plans && Object.keys(gym.custom_plans).length > 0) {
+                document.getElementById('editCustomPlansToggle').checked = true;
+                document.getElementById('editCustomPlansSection').style.display = 'block';
+
+                document.getElementById('editPlan1Month').value = gym.custom_plans['1_month'] || '';
+                document.getElementById('editPlan3Months').value = gym.custom_plans['3_months'] || '';
+                document.getElementById('editPlan6Months').value = gym.custom_plans['6_months'] || '';
+                document.getElementById('editPlan12Months').value = gym.custom_plans['12_months'] || '';
+            } else {
+                document.getElementById('editCustomPlansToggle').checked = false;
+                document.getElementById('editCustomPlansSection').style.display = 'none';
+            }
+
+            // Handle icon
+            if (gym.icon) {
+                if (gym.icon.startsWith('data:')) {
+                    // It's a base64 image
+                    document.getElementById('editGymIconPreviewContent').innerHTML = '<img src="' + gym.icon + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                    document.getElementById('editGymIconPreview').style.display = 'block';
+                } else {
+                    // It's an emoji
+                    document.getElementById('editGymIconEmoji').value = gym.icon;
+                    document.getElementById('editGymIconPreviewContent').innerHTML = '<span style="font-size: 32px;">' + gym.icon + '</span>';
+                    document.getElementById('editGymIconPreview').style.display = 'block';
+                }
+            }
+
+            // Show modal
+            document.getElementById('editGymModal').style.display = 'flex';
+        } catch (error) {
+            console.error('Error loading gym:', error);
+            showToast('Error loading gym data', 'error');
+        }
+    }
+
+    function closeEditGymModal() {
+        document.getElementById('editGymModal').style.display = 'none';
+        document.getElementById('editGymForm').reset();
+        document.getElementById('editGymIconPreview').style.display = 'none';
+        currentEditGymData = null;
+    }
+
+    async function loadPartnersForEditGymForm() {
+        try {
+            const response = await fetch('/api/partners');
+            const data = await response.json();
+            const select = document.getElementById('editGymPartner');
+            select.innerHTML = '<option value="">Select partner...</option>' +
+                data.partners.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        } catch (error) {
+            console.error('Error loading partners:', error);
+        }
+    }
+
+    async function submitEditGym() {
+        const gymId = document.getElementById('editGymId').value;
+        const gymData = {
+            gym_name: document.getElementById('editGymName').value,
+            partner_name: document.getElementById('editGymPartner').value,
+            address: document.getElementById('editGymAddress').value,
+            city: document.getElementById('editGymCity').value,
+            state: document.getElementById('editGymState').value,
+            pincode: document.getElementById('editGymPincode').value,
+            latitude: parseFloat(document.getElementById('editGymLatitude').value),
+            longitude: parseFloat(document.getElementById('editGymLongitude').value),
+            amenities: document.getElementById('editGymAmenities').value.split(',').map(a => a.trim()).filter(a => a),
+            subscription_amount: parseInt(document.getElementById('editGymSubscriptionAmount').value) || 1499
+        };
+
+        // Add custom plans if enabled
+        const customPlansToggle = document.getElementById('editCustomPlansToggle');
+        if (customPlansToggle && customPlansToggle.checked) {
+            const plan1 = document.getElementById('editPlan1Month').value;
+            const plan3 = document.getElementById('editPlan3Months').value;
+            const plan6 = document.getElementById('editPlan6Months').value;
+            const plan12 = document.getElementById('editPlan12Months').value;
+
+            if (plan1 || plan3 || plan6 || plan12) {
+                gymData.custom_plans = {};
+                if (plan1) gymData.custom_plans['1_month'] = parseInt(plan1);
+                if (plan3) gymData.custom_plans['3_months'] = parseInt(plan3);
+                if (plan6) gymData.custom_plans['6_months'] = parseInt(plan6);
+                if (plan12) gymData.custom_plans['12_months'] = parseInt(plan12);
+            }
+        }
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('editGymIconEmoji').value;
+        const iconFile = document.getElementById('editGymIconFile').files[0];
+
+        if (iconEmoji) {
+            gymData.icon = iconEmoji;
+        } else if (iconFile) {
+            // Properly await file reading for ALL image formats (PNG, JPEG, GIF, etc)
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                gymData.icon = base64;
+            } catch (error) {
+                showToast('Error reading image file', 'error');
+                return;
+            }
+        } else if (currentEditGymData && currentEditGymData.icon) {
+            gymData.icon = currentEditGymData.icon;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/gyms/${gymId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gymData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update gym');
+            }
+
+            showToast('Gym updated successfully', 'success');
+            closeEditGymModal();
+            loadGyms();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    // Edit Partner Functions
+    let currentEditPartnerData = null;
+
+    async function editPartner(partnerName) {
+        try {
+            // Fetch partner data
+            const response = await fetch('/api/partners');
+            const data = await response.json();
+            const partner = data.partners.find(p => p.name === partnerName);
+
+            if (!partner) {
+                showToast('Partner not found', 'error');
+                return;
+            }
+
+            currentEditPartnerData = partner;
+
+            // Populate form
+            document.getElementById('editPartnerOldName').value = partnerName;
+            document.getElementById('editPartnerName').value = partner.name || '';
+            document.getElementById('editPartnerDescription').value = partner.description || '';
+
+            // Handle icon
+            if (partner.icon) {
+                if (partner.icon.startsWith('data:')) {
+                    document.getElementById('editPartnerIconPreviewContent').innerHTML = '<img src="' + partner.icon + '" style="max-width: 50px; max-height: 50px; border-radius: 4px;">';
+                    document.getElementById('editPartnerIconPreview').style.display = 'block';
+                } else {
+                    document.getElementById('editPartnerIconEmoji').value = partner.icon;
+                    document.getElementById('editPartnerIconPreviewContent').innerHTML = '<span style="font-size: 32px;">' + partner.icon + '</span>';
+                    document.getElementById('editPartnerIconPreview').style.display = 'block';
+                }
+            }
+
+            // Show modal
+            document.getElementById('editPartnerModal').style.display = 'flex';
+        } catch (error) {
+            console.error('Error loading partner:', error);
+            showToast('Error loading partner data', 'error');
+        }
+    }
+
+    function closeEditPartnerModal() {
+        document.getElementById('editPartnerModal').style.display = 'none';
+        document.getElementById('editPartnerForm').reset();
+        document.getElementById('editPartnerIconPreview').style.display = 'none';
+        currentEditPartnerData = null;
+    }
+
+    async function submitEditPartner() {
+        const oldName = document.getElementById('editPartnerOldName').value;
+        const partnerData = {
+            name: document.getElementById('editPartnerName').value,
+            description: document.getElementById('editPartnerDescription').value
+        };
+
+        console.log('=== EDIT PARTNER DEBUG ===');
+        console.log('Old Name:', oldName);
+        console.log('New Name:', partnerData.name);
+
+        // Add icon if provided
+        const iconEmoji = document.getElementById('editPartnerIconEmoji').value;
+        const iconFile = document.getElementById('editPartnerIconFile').files[0];
+
+        if (iconEmoji) {
+            partnerData.icon = iconEmoji;
+        } else if (iconFile) {
+            // Properly await file reading for ALL image formats (PNG, JPEG, GIF, etc)
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(iconFile);
+                });
+                partnerData.icon = base64;
+                console.log('Partner icon loaded, size:', base64.length);
+            } catch (error) {
+                showToast('Error reading image file: ' + error.message, 'error');
+                return;
+            }
+        } else if (currentEditPartnerData && currentEditPartnerData.icon) {
+            partnerData.icon = currentEditPartnerData.icon;
+        }
+
+        try {
+            console.log('Request URL:', `/api/admin/partners/${encodeURIComponent(oldName)}`);
+            console.log('Request Body:', JSON.stringify(partnerData, null, 2));
+
+            const response = await fetch(`/api/admin/partners/${encodeURIComponent(oldName)}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(partnerData)
+            });
+
+            console.log('Response Status:', response.status);
+            console.log('Response OK:', response.ok);
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update partner');
+            }
+
+            showToast('Partner updated successfully', 'success');
+            closeEditPartnerModal();
+            loadPartners();
+        } catch (error) {
+            showToast('Error: ' + error.message, 'error');
+            console.error('Partner update error:', error);
+        }
+    }
+
+</script>
+
+</body>
+</html>

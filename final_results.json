@@ -1,0 +1,97 @@
+[
+  {
+    "test": "1. Admin Login",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "2. Navigate to Gyms Tab",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "3. Add Gym Modal Opens",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "4. Custom Plans Toggle Exists",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "5. Custom Plans Section Hidden by Default",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "6. Toggle Shows Custom Plans Section",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "7. All 4 Custom Plan Input Fields Present",
+    "status": "PASS",
+    "details": "1M, 3M, 6M, 12M"
+  },
+  {
+    "test": "8. Gym with Custom Plans Added Successfully",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "9. API /api/gyms Responds",
+    "status": "PASS",
+    "details": "Status: 200"
+  },
+  {
+    "test": "10. Gym Has custom_plans Field in API",
+    "status": "FAIL",
+    "details": ""
+  },
+  {
+    "test": "11. Custom Plan Values Correct in API",
+    "status": "FAIL",
+    "details": "custom_plans field missing"
+  },
+  {
+    "test": "12. Frontend Loads with Gym Cards",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "13. Gym Modal Opens on Frontend",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "14. Subscription Plans Section Visible",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "15. All 4 Plan Cards Displayed",
+    "status": "PASS",
+    "details": "Count: 4"
+  },
+  {
+    "test": "16. Find and Click Edit on Custom Gym",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "17. Edit Modal Opens",
+    "status": "FAIL",
+    "details": ""
+  },
+  {
+    "test": "21. CSV Upload Modal Opens",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "test": "22. CSV Format Includes Custom Plan Columns",
+    "status": "PASS",
+    "details": "plan_1m, plan_3m, plan_6m, plan_12m"
+  }
+]

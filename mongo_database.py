@@ -163,7 +163,7 @@ class MongoGymDatabase:
         partner: Optional[str] = None,
         city: Optional[str] = None,
         limit: int = 10,
-        max_distance_km: int = 50
+        max_distance_km: int = 100
     ) -> List[Dict]:
         """
         Find nearest gyms using MongoDB geospatial query
@@ -173,7 +173,7 @@ class MongoGymDatabase:
             partner: Optional partner filter
             city: Optional city filter (speeds up search)
             limit: Max number of results (default: 10)
-            max_distance_km: Maximum distance in kilometers (default: 50)
+            max_distance_km: Maximum distance in kilometers (default: 100)
         Returns: List of gyms sorted by distance
         """
         # Build query
@@ -228,13 +228,16 @@ class MongoGymDatabase:
         amenities: List[str],
         subscription_amount: int = 1499,
         icon: str = None,
-        custom_plans: dict = None
+        custom_plans: dict = None,
+        center_code: str = None,
+        center_type: str = None,
+        plans: List[dict] = None
     ) -> int:
         """
         Create a new gym entry
         Args:
             gym_name: Name of the gym
-            partner_name: Partner name (e.g., "Cult", "Gold's Gym")
+            partner_name: Partner/Provider name (e.g., "Cult")
             address: Full address
             city: City name
             state: State name
@@ -242,7 +245,10 @@ class MongoGymDatabase:
             latitude: Latitude coordinate
             longitude: Longitude coordinate
             amenities: List of amenities
-            subscription_amount: Monthly subscription amount (default: 1499)
+            subscription_amount: Starting subscription amount (default: 1499)
+            center_code: Center code (e.g., CG0017)
+            center_type: Center type (GX, Cult Center, GYM, SPORTS)
+            plans: List of plan objects [{plan_name, mrp, discount, price}]
         Returns: New gym_id
         """
         # Generate new gym_id
@@ -271,13 +277,21 @@ class MongoGymDatabase:
             'created_at': datetime.utcnow()
         }
 
-        # Add custom plans if provided
+        # Add new fields
+        if center_code:
+            new_gym['center_code'] = center_code
+        if center_type:
+            new_gym['center_type'] = center_type
+        if plans:
+            new_gym['plans'] = plans
+
+        # Add custom plans if provided (legacy support)
         if custom_plans:
             new_gym['custom_plans'] = custom_plans
 
         # Insert into MongoDB
         await self.db.gyms.insert_one(new_gym)
-        print(f"[CREATED] Gym created: {gym_name} (ID: {new_gym_id})")
+        print(f"[CREATED] Gym created: {gym_name} (ID: {new_gym_id}, Center: {center_code}, Plans: {len(plans) if plans else 0})")
 
         return new_gym_id
 
@@ -475,6 +489,14 @@ class MongoGymDatabase:
         if 'custom_plans' in gym and gym['custom_plans']:
             formatted['custom_plans'] = gym['custom_plans']
             print(f"[DEBUG] _format_gym: Added custom_plans for gym {gym['gym_id']}: {gym['custom_plans']}")
+
+        # Add new CSV upload fields
+        if 'center_code' in gym and gym['center_code']:
+            formatted['center_code'] = gym['center_code']
+        if 'center_type' in gym and gym['center_type']:
+            formatted['center_type'] = gym['center_type']
+        if 'plans' in gym and gym['plans']:
+            formatted['plans'] = gym['plans']
 
         return formatted
 

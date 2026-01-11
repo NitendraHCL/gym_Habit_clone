@@ -151,10 +151,13 @@ class SubscriptionRequest(BaseModel):
     gym_id: int
     gym_name: str
     partner_name: str
+    center_code: Optional[str] = None  # NEW: Center code for admin/support
+    center_type: Optional[str] = None  # NEW: Center type (GX, Cult Center, etc.)
     full_name: str
     email: Optional[EmailStr] = ""
     phone: str
-    preferred_plan: str
+    preferred_plan: str  # NEW format: "Cultpass Elite | 3 Months"
+    plan_price: Optional[float] = None  # NEW: Selected plan price
     billing_address: str
     message: Optional[str] = ""
     user_latitude: Optional[float] = None
@@ -381,12 +384,12 @@ async def search_gyms_by_location(
     try:
         geocode_result = geocode_location(location_clean)
 
-        # Use city filter if available to speed up search
+        # Use geospatial search without city filter for better coverage
         gyms = await gym_db.get_nearby_gyms(
             user_lat=geocode_result['lat'],
             user_lon=geocode_result['lon'],
             partner=partner,
-            city=geocode_result.get('city'),
+            city=None,  # Don't filter by city, rely on distance only
             limit=limit
         )
 
@@ -417,9 +420,20 @@ async def get_gym_details(gym_id: int):
     if not gym:
         raise HTTPException(status_code=404, detail="Gym not found")
 
-    # Calculate subscription plans - use custom plans if available, otherwise auto-calculate
-    if gym.get('custom_plans'):
-        # Use custom plans and calculate derived values
+    # Calculate subscription plans - NEW: use plans array, fallback to custom_plans, or auto-calculate
+    if gym.get('plans') and len(gym['plans']) > 0:
+        # NEW: Use plans array from CSV upload
+        plans_list = gym['plans']  # List of {plan_name, mrp, discount, price}
+        # Return as list for frontend to render dynamically
+        response = gym.copy()
+        response['subscription_plans_list'] = plans_list
+        # Also return amenities as list
+        amenities_list = gym.get('amenities', [])
+        if isinstance(amenities_list, str):
+            amenities_list = [a.strip() for a in amenities_list.split(',')]
+        response['amenities_list'] = amenities_list
+    elif gym.get('custom_plans'):
+        # OLD: Use custom plans and calculate derived values (legacy support)
         plans = {}
         custom = gym['custom_plans']
 
@@ -442,17 +456,22 @@ async def get_gym_details(gym_id: int):
                 'savings': max(0, savings),
                 'discount': discount
             }
+
+        # Parse amenities
+        amenities_list = [a.strip() for a in gym['amenities'].split(',')]
+
+        response = gym.copy()
+        response['subscription_plans'] = plans
+        response['amenities_list'] = amenities_list
     else:
-        # Auto-calculate plans based on base price
+        # Auto-calculate plans based on base price (legacy)
         base_price = gym['subscription_amount']
         plans = calculate_subscription_plans(base_price)
+        amenities_list = [a.strip() for a in gym['amenities'].split(',')]
 
-    # Parse amenities
-    amenities_list = [a.strip() for a in gym['amenities'].split(',')]
-
-    response = gym.copy()
-    response['subscription_plans'] = plans
-    response['amenities_list'] = amenities_list
+        response = gym.copy()
+        response['subscription_plans'] = plans
+        response['amenities_list'] = amenities_list
 
     return response
 
@@ -938,8 +957,8 @@ async def upload_gyms_csv_endpoint(
 ):
     """
     Upload gyms from CSV file (admin only)
-    CSV Format: gym_name,partner_name,address,city,state,pincode,latitude,longitude,amenities,subscription_amount,plan_1m,plan_3m,plan_6m,plan_12m
-    Note: plan_1m, plan_3m, plan_6m, plan_12m are optional custom plan prices
+    NEW CSV Format: Sr. No,Gym_Name,Provider,Center_Code,Center_type,Address,City,State,Latitude,Longitude,Pincode,Plan name,MRP,Discount,Price,Amenities
+    Note: Multiple rows per Center_Code will be grouped into one gym with multiple plans
     """
     # Check if user is admin
     if current_user.get('role') != 'admin':
@@ -956,54 +975,86 @@ async def upload_gyms_csv_endpoint(
 
         csv_reader = csv.DictReader(decoded_content)
 
-        gyms_created = 0
-        errors = []
+        # Group rows by Center_Code
+        gyms_by_center = {}
 
-        for i, row in enumerate(csv_reader, start=2):  # Start at 2 (line 1 is header)
+        for i, row in enumerate(csv_reader, start=2):
             try:
-                # Parse amenities (pipe-separated for CSV)
-                amenities_str = row.get('amenities', '')
+                center_code = row.get('Center_Code', '').strip()
+                if not center_code:
+                    continue
+
+                # Parse amenities (newline-separated bullet points)
+                amenities_str = row.get('Amenities', '')
                 if amenities_str:
-                    amenities = [a.strip() for a in amenities_str.split('|')]
+                    # Split by newline and remove bullet points
+                    amenities = [a.strip().lstrip('•').strip() for a in amenities_str.split('\n') if a.strip()]
                 else:
                     amenities = []
 
-                # Parse custom plans if provided
-                custom_plans = None
-                if row.get('plan_1m') or row.get('plan_3m') or row.get('plan_6m') or row.get('plan_12m'):
-                    custom_plans = {}
-                    if row.get('plan_1m'):
-                        custom_plans['1_month'] = int(row['plan_1m'])
-                    if row.get('plan_3m'):
-                        custom_plans['3_months'] = int(row['plan_3m'])
-                    if row.get('plan_6m'):
-                        custom_plans['6_months'] = int(row['plan_6m'])
-                    if row.get('plan_12m'):
-                        custom_plans['12_months'] = int(row['plan_12m'])
+                # Create plan object
+                plan = {
+                    'plan_name': row.get('Plan name', '').strip(),
+                    'mrp': int(float(row.get('MRP', 0))),
+                    'discount': float(row.get('Discount', 0)),
+                    'price': float(row.get('Price', 0))
+                }
 
-                # Create gym
+                # Group by center code
+                if center_code not in gyms_by_center:
+                    gyms_by_center[center_code] = {
+                        'gym_name': row.get('Gym_Name', '').strip(),
+                        'provider': row.get('Provider', 'Cult').strip(),
+                        'center_code': center_code,
+                        'center_type': row.get('Center_type', '').strip(),
+                        'address': row.get('Address', '').strip(),
+                        'city': row.get('City', '').strip(),
+                        'state': row.get('State', '').strip(),
+                        'latitude': float(row.get('Latitude', 0)),
+                        'longitude': float(row.get('Longitude', 0)),
+                        'pincode': row.get('Pincode', '').strip(),
+                        'amenities': amenities,
+                        'plans': []
+                    }
+
+                # Add plan to this gym
+                gyms_by_center[center_code]['plans'].append(plan)
+
+            except Exception as e:
+                print(f"[WARNING] Line {i} skipped: {str(e)}")
+                continue
+
+        # Now create gyms in database
+        gyms_created = 0
+        errors = []
+
+        for center_code, gym_data in gyms_by_center.items():
+            try:
                 await gym_db.create_gym(
-                    gym_name=row['gym_name'],
-                    partner_name=row['partner_name'],
-                    address=row['address'],
-                    city=row['city'],
-                    state=row['state'],
-                    pincode=row['pincode'],
-                    latitude=float(row['latitude']),
-                    longitude=float(row['longitude']),
-                    amenities=amenities,
-                    subscription_amount=int(row.get('subscription_amount', 1499)),
-                    custom_plans=custom_plans
+                    gym_name=gym_data['gym_name'],
+                    partner_name=gym_data['provider'],
+                    address=gym_data['address'],
+                    city=gym_data['city'],
+                    state=gym_data['state'],
+                    pincode=gym_data['pincode'],
+                    latitude=gym_data['latitude'],
+                    longitude=gym_data['longitude'],
+                    amenities=gym_data['amenities'],
+                    subscription_amount=int(min([p['price'] for p in gym_data['plans']])),  # Cheapest plan
+                    center_code=center_code,
+                    center_type=gym_data['center_type'],
+                    plans=gym_data['plans']
                 )
 
                 gyms_created += 1
 
             except Exception as e:
-                errors.append(f"Line {i}: {str(e)}")
+                errors.append(f"Center {center_code}: {str(e)}")
 
         return {
-            "message": f"Successfully uploaded {gyms_created} gyms",
+            "message": f"Successfully uploaded {gyms_created} gyms from {len(gyms_by_center)} unique centers",
             "gyms_created": gyms_created,
+            "total_centers": len(gyms_by_center),
             "errors": errors if errors else None
         }
 

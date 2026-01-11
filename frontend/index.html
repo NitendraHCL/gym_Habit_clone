@@ -111,8 +111,8 @@
         </div>
     </section>
 
-    <!-- Brand Filter Section -->
-    <section class="brands-section">
+    <!-- Brand Filter Section - HIDDEN (Only Cult available) -->
+    <section class="brands-section" style="display: none;">
         <div class="container">
             <h3 class="section-title">Filter by Partner</h3>
             <div class="brands-grid" id="brandsGrid">
@@ -282,9 +282,8 @@
         // ============================================================================
         function getPartnerIcon(partnerName) {
             const icons = {
-                'Cult': '🎯',
-                'Gold\'s Gym': '💪',
-                'Anytime Fitness': '⏰',
+                'Cult': '<img src="https://www.cult.fit/assets/images/cult-logo.png" style="width: 50px; height: 50px; object-fit: contain;" alt="Cult.fit" onerror="this.style.display=\'none\'; this.parentElement.innerHTML=\'🏃‍♂️\'">',
+                'Gold\'s Gym': '🏆',
                 'Fitness First': '🥇',
                 'Talwalkar\'s': '🧘'
             };
@@ -293,9 +292,8 @@
 
         function getPartnerColor(partnerName) {
             const colors = {
-                'Cult': '#FF6B6B',
+                'Cult': '#FF4E50',  // Cult.fit brand red
                 'Gold\'s Gym': '#FFD93D',
-                'Anytime Fitness': '#6BCF7F',
                 'Fitness First': '#4D96FF',
                 'Talwalkar\'s': '#9D4EDD'
             };
@@ -351,17 +349,30 @@
 
             gymsGrid.innerHTML = gyms.map(gym => {
                 const addressParts = gym.address.split(' ');
-                const location = addressParts.slice(-2).join(' '); // Get city area
-                const allAmenities = gym.amenities.split(',').map(a => a.trim());
-                const amenitiesList = allAmenities.slice(0, 2);
-                const remainingCount = allAmenities.length - 2;
+                const location = gym.city || addressParts.slice(-2).join(' ');
 
-                // Determine icon to display - gym icon first, then partner icon, then default
+                // Handle amenities safely
+                let allAmenities = [];
+                if (gym.amenities) {
+                    if (Array.isArray(gym.amenities)) {
+                        allAmenities = gym.amenities;
+                    } else if (typeof gym.amenities === 'string') {
+                        allAmenities = gym.amenities.split(',').map(a => a.trim());
+                    }
+                }
+                const amenitiesList = allAmenities.slice(0, 5);
+                const remainingCount = Math.max(0, allAmenities.length - 5);
+
+                // Determine icon to display
                 const iconDisplay = gym.icon ?
                     (gym.icon.startsWith('data:') ?
                         `<img src="${gym.icon}" style="width: 36px; height: 36px; object-fit: contain; border-radius: 6px;" alt="${gym.gym_name}">` :
                         gym.icon) :
                     getPartnerIcon(gym.partner_name);
+
+                // Get center type badge if available
+                const centerTypeBadge = gym.center_type ?
+                    `<span class="center-type-badge">${gym.center_type}</span>` : '';
 
                 return `
                     <div class="gym-card" onclick="showGymModal(${gym.id})" data-partner="${gym.partner_name}">
@@ -371,30 +382,33 @@
                                 ${iconDisplay}
                             </div>
                             <div class="gym-card-header-text">
-                                <span class="gym-partner-badge">${gym.partner_name}</span>
-                                ${showDistance && gym.distance ?
-                                    `<span class="gym-distance-badge">📍 ${gym.distance} km</span>` : ''}
+                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                    <span class="gym-partner-badge">${gym.partner_name}</span>
+                                    ${centerTypeBadge}
+                                </div>
                             </div>
                         </div>
 
                         <!-- Card Body -->
                         <div class="gym-card-body">
                             <h4 class="gym-name">${gym.gym_name}</h4>
-                            <div class="gym-location">📍 ${location}</div>
+                            <div class="gym-location">
+                                📍 ${location}
+                                ${showDistance && gym.distance ?
+                                    `<span class="gym-distance-tag">${gym.distance}km</span>` : ''}
+                            </div>
 
                             <!-- Prominent Pricing -->
                             <div class="gym-pricing">
-                                <div class="gym-pricing-label">STARTING FROM</div>
+                                <div class="gym-pricing-label">PLANS STARTING FROM</div>
                                 <div class="gym-pricing-amount">
                                     <span class="gym-price">₹${gym.subscription_amount.toLocaleString('en-IN')}</span>
-                                    <span class="gym-price-period">/month</span>
                                 </div>
                             </div>
 
                             <!-- Amenities -->
-                            <div class="gym-amenities">
-                                ${amenitiesList.map(a => `<span class="amenity-tag">${a}</span>`).join('')}
-                                ${remainingCount > 0 ? `<span class="amenity-tag amenity-more">+${remainingCount} more</span>` : ''}
+                            <div class="gym-amenities" title="${allAmenities.join(', ')}">
+                                ${allAmenities.join(', ')}
                             </div>
                         </div>
 
@@ -420,14 +434,71 @@
                 return;
             }
 
-            const amenitiesList = gym.amenities_list || gym.amenities.split(',').map(a => a.trim());
-            const plans = gym.subscription_plans;
+            // Handle amenities safely
+            let amenitiesList = [];
+            if (gym.amenities_list && Array.isArray(gym.amenities_list)) {
+                amenitiesList = gym.amenities_list;
+            } else if (gym.amenities) {
+                if (Array.isArray(gym.amenities)) {
+                    amenitiesList = gym.amenities;
+                } else if (typeof gym.amenities === 'string') {
+                    amenitiesList = gym.amenities.split(',').map(a => a.trim());
+                }
+            }
+
+            // Handle both NEW (plans_list) and OLD (subscription_plans) formats
+            const hasNewPlans = gym.subscription_plans_list && gym.subscription_plans_list.length > 0;
+            const plansList = hasNewPlans ? gym.subscription_plans_list : null;
+            const plansOld = !hasNewPlans ? gym.subscription_plans : null;
+
+            // Render plans HTML (NEW format with scrollable list or OLD grid format)
+            let plansHTML = '';
+            if (hasNewPlans) {
+                // NEW: Scrollable list of plans
+                plansHTML = `
+                    <div class="plans-scroll-container">
+                        ${plansList.map((plan, index) => `
+                            <div class="plan-card-new ${index === 0 ? 'selected' : ''}"
+                                 data-plan-name="${plan.plan_name}"
+                                 data-plan-price="${plan.price}"
+                                 onclick="selectNewPlan(this, '${plan.plan_name}', ${plan.price})">
+                                <input type="radio" name="plan" value="${plan.plan_name}" ${index === 0 ? 'checked' : ''} style="display: none;">
+                                <div class="plan-name-badge">${plan.plan_name}</div>
+                                <div class="plan-pricing-row">
+                                    ${plan.discount > 0 ? `<span class="plan-mrp-striked">₹${plan.mrp.toLocaleString('en-IN')}</span>` : ''}
+                                    <span class="plan-price-main">₹${plan.price.toLocaleString('en-IN')}</span>
+                                    ${plan.discount > 0 ? `<span class="plan-discount-badge">${Math.round(plan.discount * 100)}% OFF</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+            } else {
+                // OLD: Grid of plans (legacy)
+                plansHTML = `
+                    <div class="plans-grid">
+                        ${Object.entries(plansOld).map(([key, plan], index) => {
+                            const discount = plan.discount || 0;
+                            return `
+                            <div class="plan-card ${index === 0 ? 'selected' : ''}"
+                                 data-plan="${key}"
+                                 onclick="selectPlan(this, '${key}', '${plan.duration}')">
+                                <input type="radio" name="plan" value="${key}" ${index === 0 ? 'checked' : ''} style="display: none;">
+                                <div class="plan-duration">${plan.duration}</div>
+                                <div class="plan-total">₹${plan.total.toLocaleString('en-IN')}</div>
+                                <div class="plan-monthly">₹${plan.monthly.toLocaleString('en-IN')}/month</div>
+                                ${discount > 0 ? `<div class="plan-discount">${discount}% OFF</div>` : ''}
+                                ${plan.savings > 0 ? `<div class="plan-savings">Save ₹${plan.savings.toLocaleString('en-IN')}</div>` : ''}
+                            </div>
+                        `}).join('')}
+                    </div>`;
+            }
 
             modalBody.innerHTML = `
                 <div class="modal-header">
                     <div>
                         <h2 style="color: var(--brand-blue); margin-bottom: 8px;">${gym.gym_name}</h2>
                         <span class="gym-partner-badge">${gym.partner_name}</span>
+                        ${gym.center_type ? `<span class="center-type-badge">${gym.center_type}</span>` : ''}
                     </div>
                     <button class="modal-close" onclick="closeModal()">&times;</button>
                 </div>
@@ -451,24 +522,12 @@
                             <input type="hidden" name="gym_id" value="${gym.id}">
                             <input type="hidden" name="gym_name" value="${gym.gym_name}">
                             <input type="hidden" name="partner_name" value="${gym.partner_name}">
+                            <input type="hidden" name="center_code" value="${gym.center_code || ''}">
+                            <input type="hidden" name="center_type" value="${gym.center_type || ''}">
                             <input type="hidden" name="preferred_plan" id="selectedPlanInput" value="">
+                            <input type="hidden" name="plan_price" id="selectedPlanPrice" value="">
 
-                            <div class="plans-grid">
-                                ${Object.entries(plans).map(([key, plan], index) => {
-                                    const discount = plan.discount || 0;
-                                    return `
-                                    <div class="plan-card ${index === 0 ? 'selected' : ''}"
-                                         data-plan="${key}"
-                                         onclick="selectPlan(this, '${key}', '${plan.duration}')">
-                                        <input type="radio" name="plan" value="${key}" ${index === 0 ? 'checked' : ''} style="display: none;">
-                                        <div class="plan-duration">${plan.duration}</div>
-                                        <div class="plan-total">₹${plan.total.toLocaleString('en-IN')}</div>
-                                        <div class="plan-monthly">₹${plan.monthly.toLocaleString('en-IN')}/month</div>
-                                        ${discount > 0 ? `<div class="plan-discount">${discount}% OFF</div>` : ''}
-                                        ${plan.savings > 0 ? `<div class="plan-savings">Save ₹${plan.savings.toLocaleString('en-IN')}</div>` : ''}
-                                    </div>
-                                `}).join('')}
-                            </div>
+                            ${plansHTML}
 
                             <div style="margin-top: 32px;">
                                 <!-- Personal Details Section -->
@@ -532,12 +591,41 @@
             `;
 
             // Set first plan as selected by default
-            const firstPlanKey = Object.keys(plans)[0];
-            const firstPlanDuration = plans[firstPlanKey].duration;
-            document.getElementById('selectedPlanInput').value = `${firstPlanKey}`;
-            state.selectedPlan = firstPlanKey;
+            if (hasNewPlans) {
+                // NEW format
+                const firstPlan = plansList[0];
+                document.getElementById('selectedPlanInput').value = firstPlan.plan_name;
+                document.getElementById('selectedPlanPrice').value = firstPlan.price;
+                state.selectedPlan = firstPlan.plan_name;
+                state.selectedPlanPrice = firstPlan.price;
+            } else {
+                // OLD format
+                const firstPlanKey = Object.keys(plansOld)[0];
+                document.getElementById('selectedPlanInput').value = firstPlanKey;
+                state.selectedPlan = firstPlanKey;
+            }
         }
 
+        // NEW: Select plan for new format (with scrollable list)
+        function selectNewPlan(element, planName, planPrice) {
+            // Remove selected class from all plans
+            document.querySelectorAll('.plan-card-new').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Add selected class to clicked plan
+            element.classList.add('selected');
+
+            // Update hidden inputs and state
+            document.getElementById('selectedPlanInput').value = planName;
+            document.getElementById('selectedPlanPrice').value = planPrice;
+            state.selectedPlan = planName;
+            state.selectedPlanPrice = planPrice;
+
+            console.log('[Plan Selected]', planName, '- ₹' + planPrice);
+        }
+
+        // OLD: Select plan for old format (with grid)
         function selectPlan(element, planKey, planDuration) {
             // Remove selected class from all plans
             document.querySelectorAll('.plan-card').forEach(card => {
@@ -1167,7 +1255,14 @@
             if (input) {
                 // Extract city name from description
                 const cityMatch = description.match(/^([^,]+)/);
-                input.value = cityMatch ? cityMatch[1].trim() : description;
+                const newValue = cityMatch ? cityMatch[1].trim() : description;
+
+                // Clear debounce timer to prevent auto-suggestion after setting value
+                if (debounceTimer) {
+                    clearTimeout(debounceTimer);
+                }
+
+                input.value = newValue;
                 hideSuggestions();
                 searchLocation();
             }

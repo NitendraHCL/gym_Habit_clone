@@ -224,8 +224,16 @@
                 if (partner) {
                     url += `&partner=${encodeURIComponent(partner)}`;
                 }
+                console.log('[API Call]', url);
                 const response = await fetch(url);
+                console.log('[API Response Status]', response.status);
                 const data = await response.json();
+                console.log('[API Response Data]', data);
+
+                if (!response.ok || !data.gyms) {
+                    throw new Error(data.detail || 'No gyms found');
+                }
+
                 return data;
             } catch (error) {
                 console.error('Error fetching location gyms:', error);

@@ -15,7 +15,7 @@ MONGODB_URL: str = os.getenv(
     "MONGODB_URL",
     "mongodb://localhost:27017"  # Local development fallback
 )
-MONGODB_DB_NAME: str = "gym_habit"
+MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "gym")
 
 # JWT Configuration
 JWT_SECRET_KEY: str = os.getenv(

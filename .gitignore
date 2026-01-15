@@ -58,3 +58,4 @@ uploaded_gyms.csv
 # Temp folders (Claude Code)
 tmpclaude-*/
 .claude/
+*.pem

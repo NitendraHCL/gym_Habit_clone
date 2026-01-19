@@ -846,6 +846,7 @@
                             <th>Name</th>
                             <th>Phone</th>
                             <th>Gym</th>
+                            <th>Center Code</th>
                             <th>Plan</th>
                             <th>Status</th>
                             <th>Payment</th>
@@ -855,7 +856,7 @@
                         </tr>
                     </thead>
                     <tbody id="leadsTable">
-                        <tr><td colspan="9" class="loading">Loading...</td></tr>
+                        <tr><td colspan="11" class="loading">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1668,7 +1669,7 @@
             renderPagination(data.page, data.pages);
         } catch (error) {
             document.getElementById('leadsTable').innerHTML =
-                '<tr><td colspan="9" style="text-align: center; color: red;">Error loading leads</td></tr>';
+                '<tr><td colspan="11" style="text-align: center; color: red;">Error loading leads</td></tr>';
         }
     }
 
@@ -1676,7 +1677,7 @@
         const tbody = document.getElementById('leadsTable');
 
         if (!leads || leads.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No leads found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">No leads found</td></tr>';
             return;
         }
 
@@ -1684,12 +1685,14 @@
             const formattedDateTime = formatISTDateTime(lead.created_at);
             const assignedName = lead.assigned_to_name || lead.assigned_to || '';
             const assignedBadge = assignedName ? `<span class="badge badge-paid">${assignedName}</span>` : '<span class="badge badge-pending">Unassigned</span>';
+            const centerCode = lead.center_code || '-';
             return `
             <tr>
                 <td>${lead.lead_id}</td>
                 <td>${lead.full_name}</td>
                 <td>${lead.phone}</td>
                 <td>${lead.gym_name}</td>
+                <td><strong style="color: #0056B3;">${centerCode}</strong></td>
                 <td>${lead.preferred_plan}</td>
                 <td><span class="badge badge-${lead.status}">${lead.status}</span></td>
                 <td><span class="badge badge-${lead.payment.status}">${lead.payment.status}</span></td>
@@ -1812,6 +1815,19 @@
                 <button class="btn btn-sm" id="viewAuditBtn" onclick="viewAudit()">View Audit Trail</button>
             </div>
 
+            <div class="section-title" style="margin-top: 24px;">Email Actions</div>
+            <div class="actions" style="gap: 8px;">
+                <button class="btn btn-sm" style="background: #F59E0B; color: white;" onclick="sendNoResponseEmail()" ${!lead.email ? 'disabled title="No email address"' : ''}>
+                    No Response Follow-up
+                </button>
+                <button class="btn btn-sm" style="background: #10B981; color: white;" onclick="sendPaymentConfirmation()" ${!lead.email ? 'disabled title="No email address"' : ''}>
+                    Payment Confirmation
+                </button>
+                <button class="btn btn-sm" style="background: #EF4444; color: white;" onclick="sendClosureEmail()" ${!lead.email ? 'disabled title="No email address"' : ''}>
+                    Close Lead (No Interest)
+                </button>
+            </div>
+
             <div class="section-title" style="margin-top: 24px;">Comments (${lead.comments?.length || 0})</div>
             <div id="commentsSection">
                 ${lead.comments?.map(c => `
@@ -1829,6 +1845,7 @@
     function closeLeadModal() {
         document.getElementById('leadModal').classList.remove('active');
         currentLeadId = null;
+        loadLeads(currentPage); // Refresh table to show updated assignment
     }
 
     // Update Status - Open Modal
@@ -2089,6 +2106,74 @@
 
     function closeAuditTrailModal() {
         document.getElementById('auditTrailModal').style.display = 'none';
+    }
+
+    // =========================================================================
+    // EMAIL TRIGGER FUNCTIONS
+    // =========================================================================
+
+    async function sendNoResponseEmail() {
+        if (!confirm('Send "No Response Follow-up" email to this customer?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/email/no-response`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showToast('Follow-up email sent successfully!', 'success');
+                viewLead(currentLeadId); // Refresh to show updated comments
+            } else {
+                showToast(data.message || 'Failed to send email', 'error');
+            }
+        } catch (error) {
+            showToast('Error sending email', 'error');
+        }
+    }
+
+    async function sendPaymentConfirmation() {
+        if (!confirm('Send Payment Confirmation email to this customer?\n\nThis will also mark the payment as completed.')) return;
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/email/payment-confirmation`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showToast('Payment confirmation email sent!', 'success');
+                viewLead(currentLeadId); // Refresh to show updated payment status
+            } else {
+                showToast(data.message || 'Failed to send email', 'error');
+            }
+        } catch (error) {
+            showToast('Error sending email', 'error');
+        }
+    }
+
+    async function sendClosureEmail() {
+        if (!confirm('Send "No Interest Closure" email and close this lead?\n\nThis action will mark the lead as CLOSED.')) return;
+
+        try {
+            const response = await fetch(`/api/admin/leads/${currentLeadId}/email/closure`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showToast('Lead closed and closure email sent!', 'success');
+                closeLeadModal();
+                loadLeads(currentPage); // Refresh leads table
+            } else {
+                showToast(data.message || 'Failed to send email', 'error');
+            }
+        } catch (error) {
+            showToast('Error sending email', 'error');
+        }
     }
 
     // Export CSV

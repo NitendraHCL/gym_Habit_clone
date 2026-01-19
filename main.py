@@ -20,6 +20,7 @@ from datetime import datetime
 from mongo_database import MongoGymDatabase, MongoLeadManager, calculate_subscription_plans
 from mongodb import MongoDB
 from auth import create_access_token, get_current_user, verify_password
+from email_service import email_service
 import config
 
 # Initialize database managers
@@ -187,11 +188,10 @@ class SubscriptionRequest(BaseModel):
     @field_validator('preferred_plan')
     @classmethod
     def validate_plan(cls, v):
-        """Validate plan selection"""
-        valid_plans = ['1-month', '3-month', '12-month']
-        if v not in valid_plans:
-            raise ValueError(f'Plan must be one of: {valid_plans}')
-        return v
+        """Validate plan selection - accepts dynamic plan names"""
+        if not v or len(v) < 2:
+            raise ValueError('Plan selection is required')
+        return v.strip()
 
 
 class LoginRequest(BaseModel):
@@ -481,6 +481,7 @@ async def submit_subscription_request(request: SubscriptionRequest):
     """
     Submit subscription inquiry form
     Body: SubscriptionRequest model
+    Auto-triggers LEAD_ACKNOWLEDGEMENT email
     """
     try:
         # Validate gym exists
@@ -491,10 +492,20 @@ async def submit_subscription_request(request: SubscriptionRequest):
         # Save lead
         lead_id = await lead_manager.save_lead(request.dict())
 
+        # Auto-trigger: Send acknowledgement email
+        email_result = {"sent": False}
+        if request.email:
+            email_result = email_service.send_lead_acknowledgement(
+                customer_email=request.email,
+                customer_name=request.full_name,
+                gym_name=request.gym_name
+            )
+
         return {
             "success": True,
             "message": "Thank you! Our wellness team will contact you within 24 hours to help you start your fitness journey.",
-            "lead_id": lead_id
+            "lead_id": lead_id,
+            "email_sent": email_result.get("success", False)
         }
 
     except Exception as e:
@@ -900,6 +911,152 @@ async def get_audit_trail_endpoint(
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
 
     return {"lead_id": lead_id, "audit_trail": audit_trail}
+
+
+# ============================================================================
+# API ENDPOINTS - EMAIL TRIGGERS (Admin/Support Manual Triggers)
+# ============================================================================
+
+class EmailTriggerRequest(BaseModel):
+    """Request model for manual email triggers"""
+    lead_id: str
+    transaction_id: Optional[str] = None  # For payment confirmation
+    amount: Optional[float] = None  # For payment confirmation
+
+
+@app.post("/api/admin/leads/{lead_id}/email/no-response")
+async def send_no_response_email(
+    lead_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    NO_RESPONSE_FOLLOWUP - Send when customer doesn't answer call
+    Triggered by: Admin/Support CTA
+    """
+    # Get lead details
+    lead = await lead_manager.get_lead_by_id(lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    if not lead.get("email"):
+        raise HTTPException(status_code=400, detail="Lead has no email address")
+
+    # Send email
+    result = email_service.send_no_response_followup(
+        customer_email=lead["email"],
+        customer_name=lead.get("full_name", "Customer"),
+        gym_name=lead.get("gym_name", "Habit Health Gym")
+    )
+
+    # Log action in audit trail
+    if result.get("success"):
+        await lead_manager.add_comment(
+            lead_id=lead_id,
+            comment_text=f"No Response Follow-up email sent by {current_user.get('name', 'Agent')}",
+            added_by=current_user.get("email", "agent")
+        )
+
+    return {
+        "success": result.get("success", False),
+        "message": "Follow-up email sent successfully" if result.get("success") else result.get("error"),
+        "email_type": "NO_RESPONSE_FOLLOWUP"
+    }
+
+
+@app.post("/api/admin/leads/{lead_id}/email/payment-confirmation")
+async def send_payment_confirmation_email(
+    lead_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    PAYMENT_CONFIRMATION - Send after payment is validated
+    Triggered by: Admin/Support CTA
+    """
+    # Get lead details
+    lead = await lead_manager.get_lead_by_id(lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    if not lead.get("email"):
+        raise HTTPException(status_code=400, detail="Lead has no email address")
+
+    # Get amount from lead's payment info or plan
+    amount = lead.get("payment", {}).get("amount") or lead.get("plan_price") or 0
+
+    # Send email
+    result = email_service.send_payment_confirmation(
+        customer_email=lead["email"],
+        customer_name=lead.get("full_name", "Customer"),
+        gym_name=lead.get("gym_name", "Habit Health Gym"),
+        amount=amount,
+        transaction_id=lead.get("lead_id", "N/A"),
+        plan_name=lead.get("preferred_plan", "Gym Package")
+    )
+
+    # Log action and update payment status
+    if result.get("success"):
+        await lead_manager.update_payment(
+            lead_id=lead_id,
+            payment_status="completed",
+            updated_by=current_user.get("email", "agent"),
+            amount=int(amount) if amount else None
+        )
+        await lead_manager.add_comment(
+            lead_id=lead_id,
+            comment_text=f"Payment confirmation email sent by {current_user.get('name', 'Agent')}",
+            added_by=current_user.get("email", "agent")
+        )
+
+    return {
+        "success": result.get("success", False),
+        "message": "Payment confirmation email sent successfully" if result.get("success") else result.get("error"),
+        "email_type": "PAYMENT_CONFIRMATION"
+    }
+
+
+@app.post("/api/admin/leads/{lead_id}/email/closure")
+async def send_closure_email(
+    lead_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    NO_INTEREST_CLOSURE - Send to close inactive leads
+    Triggered by: Admin/Support CTA
+    """
+    # Get lead details
+    lead = await lead_manager.get_lead_by_id(lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    if not lead.get("email"):
+        raise HTTPException(status_code=400, detail="Lead has no email address")
+
+    # Send email
+    result = email_service.send_no_interest_closure(
+        customer_email=lead["email"],
+        customer_name=lead.get("full_name", "Customer"),
+        gym_name=lead.get("gym_name", "Habit Health Gym")
+    )
+
+    # Log action and update status to closed
+    if result.get("success"):
+        await lead_manager.update_lead_status(
+            lead_id=lead_id,
+            new_status="closed",
+            updated_by=current_user.get("email", "agent"),
+            reason="No Interest - Closure email sent"
+        )
+        await lead_manager.add_comment(
+            lead_id=lead_id,
+            comment_text=f"Lead closed - No Interest closure email sent by {current_user.get('name', 'Agent')}",
+            added_by=current_user.get("email", "agent")
+        )
+
+    return {
+        "success": result.get("success", False),
+        "message": "Closure email sent and lead marked as closed" if result.get("success") else result.get("error"),
+        "email_type": "NO_INTEREST_CLOSURE"
+    }
 
 
 # ============================================================================

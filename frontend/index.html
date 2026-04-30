@@ -692,12 +692,14 @@
                 return;
             }
 
-            // Handle amenities - ALWAYS use raw string and split by bullet (charCode 8226)
-            // Do NOT use amenities_list as it's incorrectly split by commas
+            // Handle amenities — backend now returns a clean array (preferred).
+            // Fallback to bullet-split for legacy string data.
             let amenitiesList = [];
             const rawAmenities = gym.amenities;
-            if (rawAmenities && typeof rawAmenities === 'string') {
-                // Split by bullet character (charCode 8226) only
+            if (Array.isArray(rawAmenities)) {
+                amenitiesList = rawAmenities.map(a => String(a).trim()).filter(a => a);
+            } else if (rawAmenities && typeof rawAmenities === 'string') {
+                // Legacy: split by bullet character (charCode 8226)
                 let current = '';
                 for (let i = 0; i < rawAmenities.length; i++) {
                     const char = rawAmenities[i];
@@ -709,6 +711,10 @@
                     }
                 }
                 if (current.trim()) amenitiesList.push(current.trim());
+                // If no bullets found, fall back to comma split
+                if (amenitiesList.length === 0 && rawAmenities.includes(',')) {
+                    amenitiesList = rawAmenities.split(',').map(a => a.trim()).filter(a => a);
+                }
             }
 
             // Handle both NEW (plans_list) and OLD (subscription_plans) formats

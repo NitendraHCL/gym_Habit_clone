@@ -468,6 +468,21 @@ class MongoGymDatabase:
             gym: MongoDB document
         Returns: Formatted gym dictionary
         """
+        # Normalize amenities to a list of strings.
+        # Some amenities contain commas inside the value (e.g. "Dance Fitness, Yoga, HRX"),
+        # so we MUST preserve the list structure end-to-end. Comma-joining corrupts those.
+        raw_amenities = gym.get('amenities', [])
+        if isinstance(raw_amenities, list):
+            amenities_list = [str(a).strip() for a in raw_amenities if str(a).strip()]
+        elif isinstance(raw_amenities, str):
+            # Legacy/unimported data stored as string — split by bullet first, then comma
+            if '•' in raw_amenities:
+                amenities_list = [a.strip() for a in raw_amenities.split('•') if a.strip()]
+            else:
+                amenities_list = [a.strip() for a in raw_amenities.split(',') if a.strip()]
+        else:
+            amenities_list = []
+
         formatted = {
             'id': gym['gym_id'],
             'partner_name': gym['partner_name'],
@@ -479,7 +494,7 @@ class MongoGymDatabase:
             'latitude': gym['latitude'],
             'longitude': gym['longitude'],
             'subscription_amount': gym['subscription_amount'],
-            'amenities': ', '.join(gym['amenities']) if isinstance(gym['amenities'], list) else gym['amenities']
+            'amenities': amenities_list
         }
 
         # Add optional fields if they exist
@@ -497,6 +512,9 @@ class MongoGymDatabase:
             formatted['center_type'] = gym['center_type']
         if 'plans' in gym and gym['plans']:
             formatted['plans'] = gym['plans']
+        # Frontend checks `subscription_plans_list` to render the rich named-plan UI
+        if 'subscription_plans_list' in gym and gym['subscription_plans_list']:
+            formatted['subscription_plans_list'] = gym['subscription_plans_list']
 
         return formatted
 
@@ -659,18 +677,26 @@ class MongoLeadManager:
         reason: Optional[str] = None
     ) -> bool:
         """
-        Update lead status with audit logging
-        Args:
-            lead_id: Lead ID
-            new_status: New status (new, contacted, interested, not_interested, closed)
-            updated_by: User email who made the change
-            reason: Optional reason for status change
+        Update lead status with audit logging.
+
+        Rules:
+          - Once payment.status == 'paid', the lead is FROZEN — status cannot change.
+            Admin must roll back payment status first if they need to alter the lead state.
+
         Returns: True if updated, False if lead not found
+        Raises: ValueError on validation failure (caller maps to HTTP 400)
         """
         # Get current lead
         lead = await self.db.leads.find_one({"lead_id": lead_id})
         if not lead:
             return False
+
+        # Lock status changes after payment is paid
+        if lead.get('payment', {}).get('status') == 'paid':
+            raise ValueError(
+                "Cannot change lead status after payment is marked as 'paid'. "
+                "Roll back payment status first if a change is needed."
+            )
 
         old_status = lead.get('status', 'new')
 
@@ -739,6 +765,52 @@ class MongoLeadManager:
 
         return result.modified_count > 0
 
+    async def _generate_recon_id(self) -> str:
+        """
+        Atomically generate next sequential Recon ID (HHGYM-00001, HHGYM-00002, ...)
+        Uses a dedicated counters collection with findOneAndUpdate $inc for race-safety.
+        Returns: Formatted recon ID string
+        """
+        result = await self.db.counters.find_one_and_update(
+            {"_id": "recon_id"},
+            {"$inc": {"seq": 1}},
+            upsert=True,
+            return_document=True
+        )
+        seq = result.get("seq", 1) if result else 1
+        return f"HHGYM-{seq:05d}"
+
+    async def peek_next_recon_id(self) -> str:
+        """
+        Predict the next Recon ID WITHOUT incrementing the counter.
+        Used to show a preview to the admin in the UI before save.
+        The actual ID generated on save may differ if another admin saves first.
+        Returns: Formatted recon ID string (predicted)
+        """
+        counter = await self.db.counters.find_one({"_id": "recon_id"})
+        current_seq = counter.get("seq", 0) if counter else 0
+        return f"HHGYM-{(current_seq + 1):05d}"
+
+    async def find_lead_by_reference_id(self, reference_id: str, exclude_lead_id: Optional[str] = None) -> Optional[str]:
+        """
+        Check if a Reference ID is already used by another lead.
+        Compares case-insensitively and ignores leading/trailing whitespace
+        so 'txn_001', ' TXN_001 ', and 'TxN_001' are all treated as duplicates.
+        """
+        if not reference_id:
+            return None
+        normalized = reference_id.strip()
+        if not normalized:
+            return None
+        # Escape regex special chars in the reference id, then anchor + case-insensitive match
+        import re as _re
+        pattern = f"^{_re.escape(normalized)}$"
+        query = {"payment.payment_link": {"$regex": pattern, "$options": "i"}}
+        if exclude_lead_id:
+            query["lead_id"] = {"$ne": exclude_lead_id}
+        existing = await self.db.leads.find_one(query)
+        return existing["lead_id"] if existing else None
+
     async def update_payment(
         self,
         lead_id: str,
@@ -748,14 +820,25 @@ class MongoLeadManager:
         amount: Optional[int] = None
     ) -> bool:
         """
-        Update payment information for a lead
+        Update payment information for a lead.
+
+        Recon ID generation rules (strict):
+          - ONLY when payment_status == 'paid' AND payment_link (Reference ID) is provided
+          - Reference ID must be unique across all leads
+          - Once a lead has a recon_id, it is never regenerated
+
+        Reference ID rules:
+          - Can only be SET or CHANGED when payment_status == 'paid'
+          - Must be unique across all leads (no two leads can share a Reference ID)
+
         Args:
             lead_id: Lead ID
             payment_status: Payment status (pending, link_shared, paid, failed)
             updated_by: User email who made the change
-            payment_link: Payment link URL
+            payment_link: Reference ID (Razorpay transaction ID) — stored in legacy field name
             amount: Payment amount
         Returns: True if updated, False if lead not found
+        Raises: ValueError on validation failure (caller should map to HTTP 400)
         """
         # Get current lead
         lead = await self.db.leads.find_one({"lead_id": lead_id})
@@ -763,8 +846,35 @@ class MongoLeadManager:
             return False
 
         old_payment = lead.get('payment', {})
+        old_payment_link = old_payment.get('payment_link')
 
-        # Prepare update
+        # Normalize incoming Reference ID — trim whitespace.
+        # Case is preserved as entered, but duplicate-check is case-insensitive.
+        if payment_link is not None:
+            payment_link = payment_link.strip()
+
+        # ----- VALIDATION -----
+        is_setting_reference = payment_link is not None and payment_link != ""
+        # Compare against old reference case-insensitively to detect "real" changes
+        old_pl_norm = (old_payment_link or "").strip().lower() if old_payment_link else ""
+        new_pl_norm = payment_link.lower() if is_setting_reference else ""
+        is_changing_reference = is_setting_reference and (new_pl_norm != old_pl_norm)
+
+        # Rule 1: Reference ID can only be set/changed when status is 'paid'
+        if is_changing_reference and payment_status != "paid":
+            raise ValueError(
+                "Reference ID can only be entered when payment status is 'paid'."
+            )
+
+        # Rule 2: Reference ID must be unique across all leads (case-insensitive, trim-tolerant)
+        if is_changing_reference:
+            dup_lead_id = await self.find_lead_by_reference_id(payment_link, exclude_lead_id=lead_id)
+            if dup_lead_id:
+                raise ValueError(
+                    f"Reference ID '{payment_link}' is already used by lead {dup_lead_id}."
+                )
+
+        # ----- BUILD UPDATE -----
         update_data = {
             "payment.status": payment_status,
             "payment.updated_at": datetime.utcnow(),
@@ -777,6 +887,18 @@ class MongoLeadManager:
         if amount is not None:
             update_data["payment.amount"] = amount
 
+        # Generate Recon ID only when ALL conditions met:
+        #   1. Lead does not already have a recon_id
+        #   2. Payment status is 'paid'
+        #   3. A Reference ID is being set on this lead (either now or already on the doc)
+        effective_reference = payment_link if payment_link is not None else old_payment_link
+        recon_id_assigned = None
+        if (not old_payment.get('recon_id')
+                and payment_status == "paid"
+                and effective_reference):
+            recon_id_assigned = await self._generate_recon_id()
+            update_data["payment.recon_id"] = recon_id_assigned
+
         # Create audit entry
         audit_entry = {
             "timestamp": datetime.utcnow(),
@@ -787,6 +909,8 @@ class MongoLeadManager:
             "amount": amount,
             "payment_link": payment_link
         }
+        if recon_id_assigned:
+            audit_entry["recon_id_generated"] = recon_id_assigned
 
         # Update lead
         result = await self.db.leads.update_one(

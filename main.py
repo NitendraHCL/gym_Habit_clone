@@ -457,8 +457,15 @@ async def get_gym_details(gym_id: int):
                 'discount': discount
             }
 
-        # Parse amenities
-        amenities_list = [a.strip() for a in gym['amenities'].split(',')]
+        # Amenities are now always a list (from _format_gym). Pass through.
+        amenities_value = gym.get('amenities', [])
+        if isinstance(amenities_value, list):
+            amenities_list = amenities_value
+        elif isinstance(amenities_value, str):
+            sep = '•' if '•' in amenities_value else ','
+            amenities_list = [a.strip() for a in amenities_value.split(sep) if a.strip()]
+        else:
+            amenities_list = []
 
         response = gym.copy()
         response['subscription_plans'] = plans
@@ -467,7 +474,15 @@ async def get_gym_details(gym_id: int):
         # Auto-calculate plans based on base price (legacy)
         base_price = gym['subscription_amount']
         plans = calculate_subscription_plans(base_price)
-        amenities_list = [a.strip() for a in gym['amenities'].split(',')]
+
+        amenities_value = gym.get('amenities', [])
+        if isinstance(amenities_value, list):
+            amenities_list = amenities_value
+        elif isinstance(amenities_value, str):
+            sep = '•' if '•' in amenities_value else ','
+            amenities_list = [a.strip() for a in amenities_value.split(sep) if a.strip()]
+        else:
+            amenities_list = []
 
         response = gym.copy()
         response['subscription_plans'] = plans
@@ -777,12 +792,16 @@ async def update_lead_status_endpoint(
             detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
 
-    success = await lead_manager.update_lead_status(
-        lead_id=lead_id,
-        new_status=status,
-        updated_by=current_user['email'],
-        reason=reason
-    )
+    try:
+        success = await lead_manager.update_lead_status(
+            lead_id=lead_id,
+            new_status=status,
+            updated_by=current_user['email'],
+            reason=reason
+        )
+    except ValueError as ve:
+        # Locked-after-paid rule
+        raise HTTPException(status_code=400, detail=str(ve))
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
@@ -840,13 +859,17 @@ async def update_payment_endpoint(
             detail=f"Invalid payment status. Must be one of: {', '.join(valid_payment_statuses)}"
         )
 
-    success = await lead_manager.update_payment(
-        lead_id=lead_id,
-        payment_status=payment_status,
-        updated_by=current_user['email'],
-        payment_link=payment_link,
-        amount=amount
-    )
+    try:
+        success = await lead_manager.update_payment(
+            lead_id=lead_id,
+            payment_status=payment_status,
+            updated_by=current_user['email'],
+            payment_link=payment_link,
+            amount=amount
+        )
+    except ValueError as ve:
+        # Validation errors (Reference ID rules) → 400 Bad Request
+        raise HTTPException(status_code=400, detail=str(ve))
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
@@ -861,6 +884,52 @@ async def update_payment_endpoint(
     }
 
 
+@app.get("/api/admin/recon-preview")
+async def recon_preview_endpoint(
+    reference_id: Optional[str] = Query(None, description="Reference ID (Razorpay txn ID) to validate"),
+    lead_id: Optional[str] = Query(None, description="Lead ID being edited (excluded from duplicate check)"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Preview the next Recon ID and validate Reference ID uniqueness — no DB writes.
+    Used by the admin UI to give live feedback as the user types the Reference ID.
+
+    Returns:
+        {
+          "predicted_recon_id": "HHGYM-XXXXX",     # what would be assigned on save
+          "is_duplicate": false,                    # true if reference_id is taken by another lead
+          "duplicate_lead_id": null                 # lead_id of the conflicting lead (if any)
+        }
+    """
+    # If a lead already has a recon_id, return that one (preview = existing)
+    existing_recon = None
+    if lead_id:
+        existing_lead = await MongoDB.db.leads.find_one({"lead_id": lead_id})
+        if existing_lead:
+            existing_recon = existing_lead.get("payment", {}).get("recon_id")
+
+    # Check duplicate (only meaningful if reference_id provided)
+    duplicate_lead_id = None
+    if reference_id:
+        duplicate_lead_id = await lead_manager.find_lead_by_reference_id(
+            reference_id=reference_id,
+            exclude_lead_id=lead_id
+        )
+
+    # Predicted recon ID = existing one (if any) else peek next from counter
+    if existing_recon:
+        predicted = existing_recon
+    else:
+        predicted = await lead_manager.peek_next_recon_id()
+
+    return {
+        "predicted_recon_id": predicted,
+        "is_existing": existing_recon is not None,
+        "is_duplicate": duplicate_lead_id is not None,
+        "duplicate_lead_id": duplicate_lead_id
+    }
+
+
 @app.patch("/api/admin/leads/{lead_id}/plan")
 async def update_plan_endpoint(
     lead_id: str,
@@ -869,17 +938,48 @@ async def update_plan_endpoint(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Update the membership plan for a lead
-    Valid plans: 1 Month, 3 Months, 6 Months, 12 Months
+    Update the membership plan for a lead.
+    Rules:
+      - Cannot change plan when payment.status == 'paid'
+      - new_plan must be one of the gym's available plans
+        (matches against subscription_plans_list[].plan_name if present,
+         else falls back to "1 Month" / "3 Months" / "6 Months" / "12 Months")
     """
-    valid_plans = ["1 Month", "3 Months", "6 Months", "12 Months"]
+    # 1. Fetch the lead
+    lead = await lead_manager.get_lead_by_id(lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
+
+    # 2. Block if payment is already paid
+    if lead.get("payment", {}).get("status") == "paid":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot change plan after payment is marked as 'paid'."
+        )
+
+    # 3. Look up the gym to get its actual available plans
+    gym_id = lead.get("gym_id")
+    gym = await gym_db.get_gym_by_id(gym_id) if gym_id else None
+    if not gym:
+        raise HTTPException(status_code=400, detail="Gym not found for this lead.")
+
+    # 4. Build the valid plan list:
+    #    - Modern gyms have `subscription_plans_list` (named plans like "Cultpass Elite || 12 Months")
+    #    - Legacy gyms only have `subscription_amount` → use the 4 standard duration labels
+    valid_plans: list = []
+    spl = gym.get("subscription_plans_list")
+    if spl and isinstance(spl, list) and len(spl) > 0:
+        valid_plans = [p["plan_name"] for p in spl if p.get("plan_name")]
+    else:
+        valid_plans = ["1 Month", "3 Months", "6 Months", "12 Months"]
 
     if new_plan not in valid_plans:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid plan. Must be one of: {', '.join(valid_plans)}"
+            detail=f"Plan '{new_plan}' is not available for this gym. Valid options: {valid_plans}"
         )
 
+    # 5. Persist
     success = await lead_manager.update_plan(
         lead_id=lead_id,
         new_plan=new_plan,
@@ -924,6 +1024,67 @@ class EmailTriggerRequest(BaseModel):
     amount: Optional[float] = None  # For payment confirmation
 
 
+# ─────────────────────────────────────────────────────────────────────────
+# EMAIL RATE LIMIT
+#   Rule:  At most 1 email of each type per lead per UTC day,
+#          AND no more than 8 emails per lead per UTC day in total.
+#   Storage: lead.email_log = [{type, sent_at (utc), user}, ...]
+# ─────────────────────────────────────────────────────────────────────────
+EMAIL_DAILY_TOTAL_CAP = 8
+
+
+async def check_and_record_email_send(lead_id: str, email_type: str, user_email: str) -> None:
+    """
+    Read lead.email_log, check today's sends, and record this attempt.
+    Raises HTTPException(429) when rate limit is exceeded.
+    Recording happens BEFORE the actual SendGrid call so a click counts
+    toward the daily quota even if SendGrid is misconfigured (avoids
+    silent retry-spam if the agent keeps clicking).
+    """
+    lead = await MongoDB.db.leads.find_one({"lead_id": lead_id})
+    if not lead:
+        # Caller already checks this; left here as a safety net.
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    now = datetime.utcnow()
+    today_start = datetime(now.year, now.month, now.day)
+
+    log = lead.get("email_log", []) or []
+    today = [
+        e for e in log
+        if isinstance(e.get("sent_at"), datetime) and e["sent_at"] >= today_start
+    ]
+
+    # Per-type daily cap: at most 1 of each type per day
+    same_type_today = [e for e in today if e.get("type") == email_type]
+    if same_type_today:
+        last = same_type_today[-1]
+        last_ts = last["sent_at"].strftime("%Y-%m-%d %H:%M UTC")
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Rate limit: a '{email_type}' email was already sent to this lead today "
+                f"at {last_ts}. Only one of each email type per customer per day is allowed."
+            )
+        )
+
+    # Total daily cap
+    if len(today) >= EMAIL_DAILY_TOTAL_CAP:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Rate limit: this lead has already received {len(today)} emails today. "
+                f"Maximum {EMAIL_DAILY_TOTAL_CAP} emails per customer per day."
+            )
+        )
+
+    # Record this send attempt
+    await MongoDB.db.leads.update_one(
+        {"lead_id": lead_id},
+        {"$push": {"email_log": {"type": email_type, "sent_at": now, "user": user_email}}}
+    )
+
+
 @app.post("/api/admin/leads/{lead_id}/email/no-response")
 async def send_no_response_email(
     lead_id: str,
@@ -940,6 +1101,9 @@ async def send_no_response_email(
 
     if not lead.get("email"):
         raise HTTPException(status_code=400, detail="Lead has no email address")
+
+    # Rate limit (1/type/day, 8/day total)
+    await check_and_record_email_send(lead_id, "NO_RESPONSE_FOLLOWUP", current_user.get("email", "agent"))
 
     # Send email
     result = email_service.send_no_response_followup(
@@ -979,6 +1143,9 @@ async def send_payment_confirmation_email(
 
     if not lead.get("email"):
         raise HTTPException(status_code=400, detail="Lead has no email address")
+
+    # Rate limit (1/type/day, 8/day total)
+    await check_and_record_email_send(lead_id, "PAYMENT_CONFIRMATION", current_user.get("email", "agent"))
 
     # Get amount from lead's payment info or plan
     amount = lead.get("payment", {}).get("amount") or lead.get("plan_price") or 0
@@ -1031,6 +1198,9 @@ async def send_closure_email(
     if not lead.get("email"):
         raise HTTPException(status_code=400, detail="Lead has no email address")
 
+    # Rate limit (1/type/day, 8/day total)
+    await check_and_record_email_send(lead_id, "NO_INTEREST_CLOSURE", current_user.get("email", "agent"))
+
     # Send email
     result = email_service.send_no_interest_closure(
         customer_email=lead["email"],
@@ -1056,6 +1226,65 @@ async def send_closure_email(
         "success": result.get("success", False),
         "message": "Closure email sent and lead marked as closed" if result.get("success") else result.get("error"),
         "email_type": "NO_INTEREST_CLOSURE"
+    }
+
+
+@app.post("/api/admin/leads/{lead_id}/email/interim-info")
+async def send_interim_info_email(
+    lead_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    INTERIM_INFO - Send transaction details to customer after payment is marked 'paid'.
+    Mandatory checks:
+      - Payment status must be 'paid'
+      - Lead must have an email address on record
+    Triggered by: Admin/Support CTA "Send Interim Info"
+    """
+    # Get lead details
+    lead = await lead_manager.get_lead_by_id(lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Mandatory check 1: Payment status must be 'paid'
+    payment = lead.get("payment", {}) or {}
+    if payment.get("status") != "paid":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot send Interim Info — payment status must be 'paid'."
+        )
+
+    # Mandatory check 2: Lead must have an email
+    if not lead.get("email"):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot send Interim Info — lead has no email address on record."
+        )
+
+    # Rate limit (1/type/day, 8/day total)
+    await check_and_record_email_send(lead_id, "INTERIM_INFO", current_user.get("email", "agent"))
+
+    # Send email
+    result = email_service.send_interim_info(
+        customer_email=lead["email"],
+        customer_name=lead.get("full_name", "Customer"),
+        reference_id=payment.get("payment_link") or "N/A",
+        transaction_amount=payment.get("amount"),
+        plan_name=lead.get("preferred_plan", "Gym Package")
+    )
+
+    # Log action to audit trail / comments
+    if result.get("success"):
+        await lead_manager.add_comment(
+            lead_id=lead_id,
+            comment_text=f"Interim Info email sent to {lead['email']} by {current_user.get('name', 'Agent')}",
+            added_by=current_user.get("email", "agent")
+        )
+
+    return {
+        "success": result.get("success", False),
+        "message": "Interim Info email sent successfully" if result.get("success") else (result.get("error") or "Failed to send email"),
+        "email_type": "INTERIM_INFO"
     }
 
 
@@ -1365,7 +1594,8 @@ async def export_leads_csv(
         "Preferred Plan",
         "Payment Status",
         "Payment Amount",
-        "Payment Link",
+        "Reference ID",
+        "Recon ID",
         "Billing Address",
         "Message",
         "Comments Count",
@@ -1373,6 +1603,7 @@ async def export_leads_csv(
         "Latest Status Update",
         "Latest Payment Update",
         "Latest Plan Change",
+        "Plan Changed",
         "All Comments"
     ])
 
@@ -1391,6 +1622,7 @@ async def export_leads_csv(
         latest_status_update = ""
         latest_payment_update = ""
         latest_plan_change = ""
+        plan_changed_to = ""  # NEW: just the new plan name from latest plan_change (or empty if never changed)
 
         # Process audit log (most recent first)
         for entry in reversed(audit_log):
@@ -1427,6 +1659,7 @@ async def export_leads_csv(
                 latest_plan_change = f"{timestamp} | {user} | {old_val} → {new_val}"
                 if reason:
                     latest_plan_change += f" | Reason: {reason}"
+                plan_changed_to = new_val  # full plan name e.g. "Cultpass Elite || 12 Months"
 
         # Format all comments
         all_comments = ""
@@ -1452,7 +1685,8 @@ async def export_leads_csv(
             lead.get('preferred_plan', ''),
             payment.get('status', ''),
             payment.get('amount', ''),
-            payment.get('payment_link', ''),
+            payment.get('payment_link', ''),    # Reference ID (Razorpay txn ID, stored in legacy field name)
+            payment.get('recon_id', ''),         # Recon ID (HHGYM-XXXXX, generated on first payment update)
             lead.get('billing_address', ''),
             lead.get('message', ''),
             len(comments),
@@ -1460,6 +1694,7 @@ async def export_leads_csv(
             latest_status_update,
             latest_payment_update,
             latest_plan_change,
+            plan_changed_to,
             all_comments.strip()
         ])
 

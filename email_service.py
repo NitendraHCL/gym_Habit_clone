@@ -212,6 +212,68 @@ class EmailService:
         html = self._get_base_template(content)
         return self._send_email(customer_email, subject, html)
 
+    def send_interim_info(self, customer_email: str, customer_name: str,
+                          reference_id: str, transaction_amount, plan_name: str) -> dict:
+        """
+        INTERIM_INFO - Manual trigger after payment is marked 'paid'.
+        Sends transaction details to the customer while the final tax invoice is being prepared.
+        """
+        subject = "Your Gym Subscription Confirmation - Habit Health"
+
+        # Format amount safely (could be int, float, or None)
+        try:
+            amount_display = f"Rs. {float(transaction_amount):,.2f}" if transaction_amount not in (None, "") else "N/A"
+        except (TypeError, ValueError):
+            amount_display = str(transaction_amount)
+
+        content = f"""
+        <h2 style="margin: 0 0 24px 0; color: #111827; font-size: 24px;">Hi {customer_name},</h2>
+
+        <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+            Your gym subscription has successfully processed. Please find the transaction details below:
+        </p>
+
+        <div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 24px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Name</td>
+                    <td style="padding: 8px 0; color: #111827; font-size: 14px; text-align: right; font-weight: 600;">{customer_name}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Transaction Number</td>
+                    <td style="padding: 8px 0; color: #111827; font-size: 14px; text-align: right; font-weight: 600;">{reference_id}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Transaction Amount</td>
+                    <td style="padding: 8px 0; color: #111827; font-size: 14px; text-align: right; font-weight: 600;">{amount_display}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Subscription Type</td>
+                    <td style="padding: 8px 0; color: #111827; font-size: 14px; text-align: right; font-weight: 600;">{plan_name}</td>
+                </tr>
+            </table>
+        </div>
+
+        <p style="margin: 24px 0 16px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+            If you have any questions or need further assistance please feel free to reach out at:<br>
+            <strong>{SUPPORT_PHONE}</strong> | <a href="mailto:help_gym@habithealth.com" style="color: #0c53a0;">help_gym@habithealth.com</a>
+        </p>
+
+        <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0;">
+            <p style="margin: 0; color: #92400E; font-size: 14px;">
+                <strong>Please note:</strong> The final tax invoice will be shared with you in 7-10 working days.
+            </p>
+        </div>
+
+        <p style="margin: 32px 0 0 0; color: #374151; font-size: 15px;">
+            Best Regards,<br>
+            <strong>Team Habit Health</strong>
+        </p>
+        """
+
+        html = self._get_base_template(content)
+        return self._send_email(customer_email, subject, html)
+
     def send_no_interest_closure(self, customer_email: str, customer_name: str, gym_name: str) -> dict:
         """
         NO_INTEREST_CLOSURE - Manual trigger to close inactive leads

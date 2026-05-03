@@ -59,6 +59,31 @@ class MongoDB:
             await cls.db.leads.create_index("payment.status")
             await cls.db.leads.create_index([("status", 1), ("payment.status", 1), ("created_at", -1)])
 
+            # Reference ID (payment.payment_link) — UNIQUE, CASE-INSENSITIVE,
+            # and ONLY indexed when the field is a string (excludes null/missing).
+            # This is the database-level guard against the race condition where two
+            # concurrent updates could both pass the application-level dup-check.
+            # NOTE: cannot combine collation with partialFilterExpression on $type in
+            # all MongoDB versions, so we use $exists+$ne instead.
+            try:
+                # Drop any prior version of this index first (so re-runs with
+                # different options don't fail with IndexOptionsConflict)
+                try:
+                    await cls.db.leads.drop_index("payment_link_unique_ci")
+                except Exception:
+                    pass  # not present
+                await cls.db.leads.create_index(
+                    "payment.payment_link",
+                    unique=True,
+                    partialFilterExpression={"payment.payment_link": {"$type": "string"}},
+                    collation={"locale": "en", "strength": 2},
+                    name="payment_link_unique_ci"
+                )
+            except Exception as idx_err:
+                # If existing data has duplicates, the index will fail to build.
+                # Log but don't crash startup — the app-level check still applies.
+                print(f"[MongoDB] [WARNING] Could not create unique index on payment.payment_link: {idx_err}")
+
             # Users collection indexes
             await cls.db.users.create_index("email", unique=True)
             await cls.db.users.create_index("role")

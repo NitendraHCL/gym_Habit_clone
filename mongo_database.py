@@ -845,6 +845,13 @@ class MongoLeadManager:
         if not lead:
             return False
 
+        # Block payment changes on CLOSED leads — the deal is dead, no transactions expected.
+        if lead.get('status') == 'closed':
+            raise ValueError(
+                "Cannot update payment on a closed lead. "
+                "Reopen the lead first by changing its status."
+            )
+
         old_payment = lead.get('payment', {})
         old_payment_link = old_payment.get('payment_link')
 
@@ -912,14 +919,24 @@ class MongoLeadManager:
         if recon_id_assigned:
             audit_entry["recon_id_generated"] = recon_id_assigned
 
-        # Update lead
-        result = await self.db.leads.update_one(
-            {"lead_id": lead_id},
-            {
-                "$set": update_data,
-                "$push": {"audit_log": audit_entry}
-            }
-        )
+        # Update lead — catch DuplicateKeyError from the unique index on payment.payment_link
+        # (race-condition guard). When two requests pass the read-then-write app check
+        # in the same millisecond, the DB index rejects the second one.
+        from pymongo.errors import DuplicateKeyError
+        try:
+            result = await self.db.leads.update_one(
+                {"lead_id": lead_id},
+                {
+                    "$set": update_data,
+                    "$push": {"audit_log": audit_entry}
+                }
+            )
+        except DuplicateKeyError:
+            # The index caught a concurrent duplicate that slipped past the app check
+            raise ValueError(
+                f"Reference ID '{payment_link}' is already used by another lead "
+                f"(detected by database uniqueness constraint)."
+            )
 
         return result.modified_count > 0
 
@@ -943,6 +960,13 @@ class MongoLeadManager:
         lead = await self.db.leads.find_one({"lead_id": lead_id})
         if not lead:
             return False
+
+        # Block plan change on CLOSED leads
+        if lead.get('status') == 'closed':
+            raise ValueError(
+                "Cannot change plan on a closed lead. "
+                "Reopen the lead first by changing its status."
+            )
 
         old_plan = lead.get('preferred_plan', '')
 

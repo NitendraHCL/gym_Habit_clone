@@ -859,6 +859,21 @@ async def update_payment_endpoint(
             detail=f"Invalid payment status. Must be one of: {', '.join(valid_payment_statuses)}"
         )
 
+    # Bounds check on payment amount: must be > 0 and ≤ ₹10 lakh
+    # Razorpay also rejects negative & zero — protect at app layer for clearer errors.
+    PAYMENT_AMOUNT_MAX = 1_000_000  # 10 lakh INR — reasonable upper bound for any gym membership
+    if amount is not None:
+        if amount <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Payment amount must be greater than 0. Got: {amount}"
+            )
+        if amount > PAYMENT_AMOUNT_MAX:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Payment amount exceeds maximum (₹{PAYMENT_AMOUNT_MAX:,}). Got: ₹{amount:,}"
+            )
+
     try:
         success = await lead_manager.update_payment(
             lead_id=lead_id,
@@ -980,12 +995,16 @@ async def update_plan_endpoint(
         )
 
     # 5. Persist
-    success = await lead_manager.update_plan(
-        lead_id=lead_id,
-        new_plan=new_plan,
-        updated_by=current_user['email'],
-        reason=reason
-    )
+    try:
+        success = await lead_manager.update_plan(
+            lead_id=lead_id,
+            new_plan=new_plan,
+            updated_by=current_user['email'],
+            reason=reason
+        )
+    except ValueError as ve:
+        # Closed-lead block, etc.
+        raise HTTPException(status_code=400, detail=str(ve))
 
     if not success:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found")
@@ -1575,6 +1594,19 @@ async def export_leads_csv(
 
     leads = result.get('leads', [])
 
+    # CSV INJECTION DEFENSE — sanitize any cell that starts with =, +, -, @, tab, CR.
+    # Excel/Google Sheets treat these as formulas; prefix with single quote to neutralize.
+    # OWASP CSV Injection mitigation:
+    #   https://owasp.org/www-community/attacks/CSV_Injection
+    _DANGEROUS_CSV_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
+    def csv_safe(value):
+        if value is None:
+            return ''
+        s = str(value)
+        if s and s[0] in _DANGEROUS_CSV_PREFIXES:
+            return "'" + s
+        return s
+
     # Create CSV in memory
     output = io.StringIO()
     writer = csv.writer(output)
@@ -1672,30 +1704,30 @@ async def export_leads_csv(
             all_comments += f"[{comment_time} - {comment_user}] {comment_text}; "
 
         writer.writerow([
-            lead.get('lead_id', ''),
-            created_at,
-            lead.get('status', ''),
-            lead.get('full_name', ''),
-            lead.get('email', ''),
-            lead.get('phone', ''),
-            user_location.get('city', ''),
-            user_location.get('state', ''),
-            lead.get('gym_name', ''),
-            lead.get('partner_name', ''),
-            lead.get('preferred_plan', ''),
-            payment.get('status', ''),
-            payment.get('amount', ''),
-            payment.get('payment_link', ''),    # Reference ID (Razorpay txn ID, stored in legacy field name)
-            payment.get('recon_id', ''),         # Recon ID (HHGYM-XXXXX, generated on first payment update)
-            lead.get('billing_address', ''),
-            lead.get('message', ''),
+            csv_safe(lead.get('lead_id', '')),
+            csv_safe(created_at),
+            csv_safe(lead.get('status', '')),
+            csv_safe(lead.get('full_name', '')),
+            csv_safe(lead.get('email', '')),
+            csv_safe(lead.get('phone', '')),
+            csv_safe(user_location.get('city', '')),
+            csv_safe(user_location.get('state', '')),
+            csv_safe(lead.get('gym_name', '')),
+            csv_safe(lead.get('partner_name', '')),
+            csv_safe(lead.get('preferred_plan', '')),
+            csv_safe(payment.get('status', '')),
+            csv_safe(payment.get('amount', '')),
+            csv_safe(payment.get('payment_link', '')),    # Reference ID (Razorpay txn ID, stored in legacy field name)
+            csv_safe(payment.get('recon_id', '')),         # Recon ID (HHGYM-XXXXX)
+            csv_safe(lead.get('billing_address', '')),
+            csv_safe(lead.get('message', '')),
             len(comments),
             len(audit_log),
-            latest_status_update,
-            latest_payment_update,
-            latest_plan_change,
-            plan_changed_to,
-            all_comments.strip()
+            csv_safe(latest_status_update),
+            csv_safe(latest_payment_update),
+            csv_safe(latest_plan_change),
+            csv_safe(plan_changed_to),
+            csv_safe(all_comments.strip())
         ])
 
     # Get CSV content

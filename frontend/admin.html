@@ -1491,6 +1491,23 @@
 <div id="toast" class="toast"></div>
 
 <script>
+    // ──────────────────────────────────────────────────────────────────
+    // XSS DEFENSE — escape any untrusted text before injecting into innerHTML
+    // Lead names, emails, comments, etc. come from public form input and
+    // must NEVER be interpolated raw into HTML.
+    // ──────────────────────────────────────────────────────────────────
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    // Convenience alias
+    const E = escapeHtml;
+
     let authToken = localStorage.getItem('authToken');
     let currentUser = null;
     let currentPage = 1;
@@ -1688,18 +1705,18 @@
         tbody.innerHTML = leads.map(lead => {
             const formattedDateTime = formatISTDateTime(lead.created_at);
             const assignedName = lead.assigned_to_name || lead.assigned_to || '';
-            const assignedBadge = assignedName ? `<span class="badge badge-paid">${assignedName}</span>` : '<span class="badge badge-pending">Unassigned</span>';
+            const assignedBadge = assignedName ? `<span class="badge badge-paid">${E(assignedName)}</span>` : '<span class="badge badge-pending">Unassigned</span>';
             const centerCode = lead.center_code || '-';
             return `
             <tr>
-                <td>${lead.lead_id}</td>
-                <td>${lead.full_name}</td>
-                <td>${lead.phone}</td>
-                <td>${lead.gym_name}</td>
-                <td><strong style="color: #0056B3;">${centerCode}</strong></td>
-                <td>${lead.preferred_plan}</td>
-                <td><span class="badge badge-${lead.status}">${lead.status}</span></td>
-                <td><span class="badge badge-${lead.payment.status}">${lead.payment.status}</span></td>
+                <td>${E(lead.lead_id)}</td>
+                <td>${E(lead.full_name)}</td>
+                <td>${E(lead.phone)}</td>
+                <td>${E(lead.gym_name)}</td>
+                <td><strong style="color: #0056B3;">${E(centerCode)}</strong></td>
+                <td>${E(lead.preferred_plan)}</td>
+                <td><span class="badge badge-${E(lead.status)}">${E(lead.status)}</span></td>
+                <td><span class="badge badge-${E(lead.payment.status)}">${E(lead.payment.status)}</span></td>
                 <td>${assignedBadge}</td>
                 <td style="white-space: nowrap;">${formattedDateTime}</td>
                 <td><button class="btn btn-sm btn-primary" onclick="viewLead('${lead.lead_id}')">View</button></td>
@@ -1770,51 +1787,51 @@
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">Full Name</div>
-                    <div class="info-value">${lead.full_name}</div>
+                    <div class="info-value">${E(lead.full_name)}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Email</div>
-                    <div class="info-value">${lead.email || 'N/A'}</div>
+                    <div class="info-value">${E(lead.email || 'N/A')}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Phone</div>
-                    <div class="info-value">${lead.phone}</div>
+                    <div class="info-value">${E(lead.phone)}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">City</div>
-                    <div class="info-value">${lead.user_location?.city || 'N/A'}</div>
+                    <div class="info-value">${E(lead.user_location?.city || 'N/A')}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Gym</div>
-                    <div class="info-value">${lead.gym_name}</div>
+                    <div class="info-value">${E(lead.gym_name)}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Partner</div>
-                    <div class="info-value">${lead.partner_name}</div>
+                    <div class="info-value">${E(lead.partner_name)}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Plan</div>
-                    <div class="info-value">${lead.preferred_plan}</div>
+                    <div class="info-value">${E(lead.preferred_plan)}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Status</div>
-                    <div class="info-value"><span class="badge badge-${lead.status}">${lead.status}</span></div>
+                    <div class="info-value"><span class="badge badge-${E(lead.status)}">${E(lead.status)}</span></div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Payment Status</div>
-                    <div class="info-value"><span class="badge badge-${lead.payment.status}">${lead.payment.status}</span></div>
+                    <div class="info-value"><span class="badge badge-${E(lead.payment.status)}">${E(lead.payment.status)}</span></div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Payment Amount</div>
-                    <div class="info-value">₹${lead.payment.amount || 'N/A'}</div>
+                    <div class="info-value">₹${E(lead.payment.amount || 'N/A')}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Reference ID</div>
-                    <div class="info-value">${lead.payment.payment_link || 'N/A'}</div>
+                    <div class="info-value">${E(lead.payment.payment_link || 'N/A')}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Recon ID</div>
-                    <div class="info-value">${lead.payment.recon_id || 'N/A'}</div>
+                    <div class="info-value">${E(lead.payment.recon_id || 'N/A')}</div>
                 </div>
             </div>
 
@@ -1847,8 +1864,8 @@
             <div id="commentsSection">
                 ${lead.comments?.map(c => `
                     <div class="comment-item">
-                        <div class="comment-meta">${c.user} • ${formatISTDateTime(c.timestamp)}</div>
-                        <div>${c.text}</div>
+                        <div class="comment-meta">${E(c.user)} • ${formatISTDateTime(c.timestamp)}</div>
+                        <div>${E(c.text)}</div>
                     </div>
                 `).join('') || '<p style="color: var(--text-secondary);">No comments yet</p>'}
             </div>
@@ -2261,49 +2278,49 @@
                 if (entry.action === 'status_change') {
                     detailsHtml = `
                         <div class="audit-change">
-                            <span class="old-value">${entry.old_value || 'N/A'}</span>
+                            <span class="old-value">${E(entry.old_value || 'N/A')}</span>
                             →
-                            <span class="new-value">${entry.new_value || 'N/A'}</span>
+                            <span class="new-value">${E(entry.new_value || 'N/A')}</span>
                         </div>
-                        ${entry.reason ? `<div class="audit-details"><strong>Reason:</strong> ${entry.reason}</div>` : ''}
+                        ${entry.reason ? `<div class="audit-details"><strong>Reason:</strong> ${E(entry.reason)}</div>` : ''}
                     `;
                 }
                 // Payment update
                 else if (entry.action === 'payment_update') {
                     detailsHtml = `
                         <div class="audit-change">
-                            Status: <span class="old-value">${entry.old_status || 'N/A'}</span>
+                            Status: <span class="old-value">${E(entry.old_status || 'N/A')}</span>
                             →
-                            <span class="new-value">${entry.new_status || 'N/A'}</span>
+                            <span class="new-value">${E(entry.new_status || 'N/A')}</span>
                         </div>
-                        ${entry.amount ? `<div class="audit-details"><strong>Amount:</strong> ₹${entry.amount}</div>` : ''}
-                        ${entry.payment_link ? `<div class="audit-details"><strong>Reference ID:</strong> ${entry.payment_link}</div>` : ''}
-                        ${entry.recon_id_generated ? `<div class="audit-details"><strong>Recon ID generated:</strong> ${entry.recon_id_generated}</div>` : ''}
+                        ${entry.amount ? `<div class="audit-details"><strong>Amount:</strong> ₹${E(entry.amount)}</div>` : ''}
+                        ${entry.payment_link ? `<div class="audit-details"><strong>Reference ID:</strong> ${E(entry.payment_link)}</div>` : ''}
+                        ${entry.recon_id_generated ? `<div class="audit-details"><strong>Recon ID generated:</strong> ${E(entry.recon_id_generated)}</div>` : ''}
                     `;
                 }
                 // Plan change
                 else if (entry.action === 'plan_change') {
                     detailsHtml = `
                         <div class="audit-change">
-                            <span class="old-value">${entry.old_value || 'N/A'}</span>
+                            <span class="old-value">${E(entry.old_value || 'N/A')}</span>
                             →
-                            <span class="new-value">${entry.new_value || 'N/A'}</span>
+                            <span class="new-value">${E(entry.new_value || 'N/A')}</span>
                         </div>
-                        ${entry.reason ? `<div class="audit-details"><strong>Reason:</strong> ${entry.reason}</div>` : ''}
+                        ${entry.reason ? `<div class="audit-details"><strong>Reason:</strong> ${E(entry.reason)}</div>` : ''}
                     `;
                 }
                 // Comment added
                 else if (entry.action === 'comment_added') {
-                    detailsHtml = `<div class="audit-details">${entry.comment || ''}</div>`;
+                    detailsHtml = `<div class="audit-details">${E(entry.comment || '')}</div>`;
                 }
 
                 return `
-                    <div class="audit-item ${entry.action}">
+                    <div class="audit-item ${E(entry.action)}">
                         <div class="audit-header">
-                            <span class="audit-action">${actionLabel}</span>
+                            <span class="audit-action">${E(actionLabel)}</span>
                             <span class="audit-timestamp">${timestamp}</span>
                         </div>
-                        <div class="audit-user">By: ${entry.user}</div>
+                        <div class="audit-user">By: ${E(entry.user)}</div>
                         ${detailsHtml}
                     </div>
                 `;
@@ -2472,9 +2489,9 @@
 
         tbody.innerHTML = users.map(user => `
             <tr>
-                <td>${user.name}</td>
-                <td>${user.email}</td>
-                <td><span class="badge">${user.role}</span></td>
+                <td>${E(user.name)}</td>
+                <td>${E(user.email)}</td>
+                <td><span class="badge">${E(user.role)}</span></td>
                 <td><span class="badge ${user.is_active ? 'badge-paid' : 'badge-pending'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
                 <td>${user.last_login ? formatISTDateTime(user.last_login) : 'Never'}</td>
                 <td>
@@ -2616,11 +2633,11 @@
 
             table.innerHTML = gyms.map(gym => `
                 <tr>
-                    <td>${gym.gym_name}</td>
-                    <td>${gym.partner_name}</td>
-                    <td>${gym.city}</td>
-                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.address}</td>
-                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${gym.amenities || 'N/A'}</td>
+                    <td>${E(gym.gym_name)}</td>
+                    <td>${E(gym.partner_name)}</td>
+                    <td>${E(gym.city)}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${E(gym.address)}</td>
+                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${E(Array.isArray(gym.amenities) ? gym.amenities.join(', ') : (gym.amenities || 'N/A'))}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="editGym('${gym.id || gym._id}')">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteGym('${gym.id || gym._id}')">Delete</button>
@@ -2825,12 +2842,12 @@
 
             table.innerHTML = partners.map(partner => `
                 <tr>
-                    <td>${partner.name}</td>
-                    <td>${partner.gym_count || 0}</td>
-                    <td>${partner.cities ? partner.cities.join(', ') : 'N/A'}</td>
+                    <td>${E(partner.name)}</td>
+                    <td>${E(partner.gym_count || 0)}</td>
+                    <td>${E(partner.cities ? partner.cities.join(', ') : 'N/A')}</td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="editPartner('${partner.name}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deletePartner('${partner.name}')">Delete</button>
+                        <button class="btn btn-sm btn-primary" onclick="editPartner('${E(partner.name).replace(/&#039;/g, '&#39;')}')">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePartner('${E(partner.name).replace(/&#039;/g, '&#39;')}')">Delete</button>
                     </td>
                 </tr>
             `).join('');

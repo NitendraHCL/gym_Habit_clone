@@ -15,7 +15,7 @@ load_dotenv()
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "nikhil.dubey@hclhealthcare.in")
 FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "Habit Health by HCL Healthcare")
-SUPPORT_PHONE = "1800-XXX-XXXX"  # Update with actual number
+SUPPORT_PHONE = "+91-7217890075"
 
 
 class EmailService:
@@ -256,7 +256,7 @@ class EmailService:
 
         <p style="margin: 24px 0 16px 0; color: #374151; font-size: 15px; line-height: 1.6;">
             If you have any questions or need further assistance please feel free to reach out at:<br>
-            <strong>{SUPPORT_PHONE}</strong> | <a href="mailto:help_gym@habithealth.com" style="color: #0c53a0;">help_gym@habithealth.com</a>
+            <strong>{SUPPORT_PHONE}</strong> | <a href="mailto:customerexperience@hclhealthcare.in" style="color: #0c53a0;">customerexperience@hclhealthcare.in</a>
         </p>
 
         <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0;">

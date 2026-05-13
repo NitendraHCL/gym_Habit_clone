@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;900&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css?v=32">
+    <link rel="stylesheet" href="/static/style.css?v=34">
     <script>
         function initMap() {
             console.log('Google Maps API loaded');
@@ -22,9 +22,9 @@
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <div class="logo">
+                <a href="https://www.habithealth.com" class="logo" aria-label="Habit Health home" rel="noopener">
                     <img src="/static/logo_habit.png" alt="Habit Health Logo" class="logo-image">
-                </div>
+                </a>
             </div>
         </div>
     </header>
@@ -50,19 +50,19 @@
 
                 <!-- City Toggle Buttons -->
                 <div class="city-toggles">
-                    <button class="city-toggle" data-city="Mumbai" onclick="selectCity('Mumbai')">
+                    <button class="city-toggle" data-city="Mumbai" onclick="selectCity(event, 'Mumbai')">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M2 14V8L8 2L14 8V14H9V10H7V14H2Z" fill="currentColor"/>
                         </svg>
                         Mumbai
                     </button>
-                    <button class="city-toggle active" data-city="Delhi" onclick="selectCity('Delhi')">
+                    <button class="city-toggle active" data-city="Delhi" onclick="selectCity(event, 'Delhi')">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M2 14V8L8 2L14 8V14H9V10H7V14H2Z" fill="currentColor"/>
                         </svg>
                         Delhi
                     </button>
-                    <button class="city-toggle" data-city="Bangalore" onclick="selectCity('Bangalore')">
+                    <button class="city-toggle" data-city="Bangalore" onclick="selectCity(event, 'Bangalore')">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M2 14V8L8 2L14 8V14H9V10H7V14H2Z" fill="currentColor"/>
                         </svg>
@@ -684,6 +684,7 @@
             const modalBody = document.getElementById('modalBody');
 
             modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
             modalBody.innerHTML = '<div class="loading">Loading gym details...</div>';
 
             const gym = await fetchGymDetails(gymId);
@@ -924,6 +925,7 @@
 
         function closeModal() {
             document.getElementById('gymModal').classList.add('hidden');
+            document.body.style.overflow = '';
             state.selectedPlan = null;
         }
 
@@ -1053,6 +1055,8 @@
 
             searchBtn.disabled = true;
             searchBtnText.textContent = '🔄 Searching...';
+            // Dismiss mobile keyboard so the viewport doesn't jitter after re-render
+            if (typeof searchInput.blur === 'function') searchInput.blur();
 
             try {
                 const result = await fetchLocationGyms(location, null, 20);
@@ -1079,6 +1083,14 @@
                 // Update section title
                 document.getElementById('gymsTitle').textContent = `Gyms near ${result.location}`;
 
+                // On mobile, scroll the results into view after the DOM settles
+                if (window.innerWidth < 640) {
+                    requestAnimationFrame(() => {
+                        const target = document.getElementById('gymsSection');
+                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                }
+
                 searchBtnText.textContent = '✓ Found';
                 setTimeout(() => {
                     searchBtn.disabled = false;
@@ -1102,16 +1114,19 @@
         // ============================================================================
         // CITY TOGGLE FUNCTIONALITY
         // ============================================================================
-        function selectCity(city) {
-            // Remove active class from all buttons
+        function selectCity(evt, city) {
             document.querySelectorAll('.city-toggle').forEach(btn => {
                 btn.classList.remove('active');
             });
 
-            // Add active class to clicked button
-            event.target.closest('.city-toggle').classList.add('active');
+            const targetBtn = (evt && evt.target) ? evt.target.closest('.city-toggle') : null;
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            } else {
+                const fallback = document.querySelector(`.city-toggle[data-city="${city}"]`);
+                if (fallback) fallback.classList.add('active');
+            }
 
-            // Set search input and trigger search
             const searchInput = document.getElementById('locationSearchInput');
             searchInput.value = city;
             searchLocation();

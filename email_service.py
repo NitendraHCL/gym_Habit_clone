@@ -13,7 +13,7 @@ load_dotenv()
 
 # Configuration
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
-FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "nikhil.dubey@hclhealthcare.in")
+FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "noreply.healthcare@hclhealthcare.in")
 FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "Habit Health by HCL Healthcare")
 SUPPORT_PHONE = "+91-7217890075"
 
